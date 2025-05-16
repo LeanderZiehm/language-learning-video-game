@@ -37,6 +37,56 @@ function createPlaceholderImageData(color = '#FF69B4', size = 32) {
   return canvas.toDataURL();
 }
 
+// Create a tree image
+function createTreeImageData(color = '#2ecc71', size = 32) {
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size * 1.5; // Match the actual tree dimensions (32x48)
+  const ctx = canvas.getContext('2d');
+  
+  // Tree trunk
+  ctx.fillStyle = '#8B4513';
+  ctx.fillRect(size * 0.4, size * 0.8, size * 0.2, size * 0.7);
+  
+  // Tree foliage (triangle)
+  ctx.fillStyle = color;
+  
+  // First layer (bottom)
+  ctx.beginPath();
+  ctx.moveTo(size * 0.2, size * 0.8);
+  ctx.lineTo(size * 0.8, size * 0.8);
+  ctx.lineTo(size * 0.5, size * 0.5);
+  ctx.closePath();
+  ctx.fill();
+  
+  // Second layer (middle)
+  ctx.beginPath();
+  ctx.moveTo(size * 0.25, size * 0.5);
+  ctx.lineTo(size * 0.75, size * 0.5);
+  ctx.lineTo(size * 0.5, size * 0.3);
+  ctx.closePath();
+  ctx.fill();
+  
+  // Third layer (top)
+  ctx.beginPath();
+  ctx.moveTo(size * 0.3, size * 0.3);
+  ctx.lineTo(size * 0.7, size * 0.3);
+  ctx.lineTo(size * 0.5, size * 0.1);
+  ctx.closePath();
+  ctx.fill();
+  
+  // Add some texture
+  ctx.fillStyle = 'rgba(255,255,255,0.1)';
+  for (let i = 0; i < 15; i++) {
+    const x = Math.random() * size;
+    const y = Math.random() * size;
+    const s = 1 + Math.random() * 2;
+    ctx.fillRect(x, y, s, s);
+  }
+  
+  return canvas.toDataURL();
+}
+
 // Create a heart image
 function createHeartImageData(color = '#FF0000', size = 32) {
   const canvas = document.createElement('canvas');
@@ -71,15 +121,22 @@ function createHeartImageData(color = '#FF0000', size = 32) {
 
 // Map of asset names to colors for placeholders
 const placeholderAssets = {
-  // Characters
-  'player': '#3498db',
-  'npc_girl': '#ff69b4',
-  'npc_boy': '#9b59b6',
+  // Characters - using createPlaceholderImageData
+  'player_idle': '#3498db',
+  'player_idleAnim': '#3498db',
+  'player_run': '#3498db',
+  'npc_girl_idle': '#ff69b4',
+  'npc_girl_idleAnim': '#ff69b4',
+  'npc_boy_idle': '#9b59b6',
+  'npc_boy_idleAnim': '#9b59b6',
+  
+  // Tilesets
+  'harvestTrees': 'tree', // Special handling for trees
+  'harvestObjects': '#34495e',
   
   // Level 1 - Park
   'park_bg': '#7fdbff',
   'bench': '#8b4513',
-  'tree': '#2ecc71',
   'flowers': '#e84393',
   
   // Level 2 - Cafe
@@ -110,15 +167,62 @@ const placeholderAssets = {
 
 // Function to preload all placeholder assets in Phaser
 export function loadPlaceholderAssets(scene) {
-  Object.entries(placeholderAssets).forEach(([key, color]) => {
+  Object.entries(placeholderAssets).forEach(([key, value]) => {
     if (key === 'heart') {
-      const dataUrl = createHeartImageData(color);
+      const dataUrl = createHeartImageData(value);
       scene.textures.addBase64(key, dataUrl);
+    } else if (key === 'harvestTrees' || key === 'tree') {
+      // Create a tree spritesheet
+      const dataUrl = createTreeImageData('#2ecc71', 32);
+      scene.textures.addBase64('tree', dataUrl);
+      scene.textures.addBase64('harvestTrees', dataUrl);
     } else {
-      const dataUrl = createPlaceholderImageData(color);
+      const dataUrl = createPlaceholderImageData(value);
       scene.textures.addBase64(key, dataUrl);
     }
   });
+  
+  // Create frame-based animation data
+  if (scene.anims && !scene.anims.exists('player_idle')) {
+    // Player idle animation
+    scene.anims.create({
+      key: 'player_idle',
+      frames: [
+        { key: 'player_idle' }
+      ],
+      frameRate: 5,
+      repeat: -1
+    });
+    
+    // Player run animation
+    scene.anims.create({
+      key: 'player_run',
+      frames: [
+        { key: 'player_run' }
+      ],
+      frameRate: 10,
+      repeat: -1
+    });
+    
+    // NPC animations
+    scene.anims.create({
+      key: 'npc_girl_idle',
+      frames: [
+        { key: 'npc_girl_idle' }
+      ],
+      frameRate: 5,
+      repeat: -1
+    });
+    
+    scene.anims.create({
+      key: 'npc_boy_idle',
+      frames: [
+        { key: 'npc_boy_idle' }
+      ],
+      frameRate: 5,
+      repeat: -1
+    });
+  }
   
   console.log('Placeholder assets loaded');
 } 
