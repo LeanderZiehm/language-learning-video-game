@@ -33,12 +33,12 @@ function HUD({ profile }) {
             const transcript = event.results[i][0].transcript;
             if (event.results[i].isFinal) {
               finalTranscript += transcript;
-              setCommand(finalTranscript);
-              handleCommandSubmit(finalTranscript);
-              setVoiceTranscript('');
+              setCommand(finalTranscript);           // Set final command
+              handleCommandSubmit(finalTranscript);  // Submit the command
+              setVoiceTranscript('');                // Clear interim transcript
             } else {
               interimTranscript += transcript;
-              setVoiceTranscript(interimTranscript);
+              setVoiceTranscript(interimTranscript); // ✅ Set real-time transcript here
             }
           }
         };
