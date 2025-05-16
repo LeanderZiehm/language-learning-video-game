@@ -77,6 +77,9 @@ export function initPhaser(container, profile) {
   // Pass the profile data to the scenes
   game.registry.set('profile', profile || {});
   
+  // Register the command parser function for use in scenes
+  game.registry.set('parseCommand', parseCommand);
+  
   // Register command event listener
   if (typeof window !== 'undefined') {
     window.addEventListener('commandSubmitted', (e) => {

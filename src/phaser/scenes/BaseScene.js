@@ -1,5 +1,9 @@
 import Phaser from 'phaser';
-import { loadPlaceholderAssets } from '../../assets/placeholder';
+import { 
+  loadCharacterSprites, 
+  loadEnvironmentAssets, 
+  createCharacterAnimations 
+} from '../../assets/assetLoader';
 
 class BaseScene extends Phaser.Scene {
   constructor(key) {
@@ -8,13 +12,34 @@ class BaseScene extends Phaser.Scene {
   }
 
   loadAssets() {
-    // Instead of loading from files, we'll use the placeholder generator
-    loadPlaceholderAssets(this);
+    // Load character sprites and environment assets
+    loadCharacterSprites(this);
+    loadEnvironmentAssets(this);
   }
 
   createPlayer(x, y) {
-    this.player = this.physics.add.sprite(x, y, 'player').setScale(2);
+    // Try to use animated sprite first, fall back to static if needed
+    let spriteKey = 'player_idle';
+    if (this.textures.exists('player_idleAnim')) {
+      spriteKey = 'player_idleAnim';
+    }
+    
+    this.player = this.physics.add.sprite(x, y, spriteKey);
     this.player.setCollideWorldBounds(true);
+    
+    // Set up character animations if not already done
+    if (!this.anims.exists('player_idle')) {
+      createCharacterAnimations(this);
+    }
+    
+    // Play idle animation if it exists
+    if (this.anims.exists('player_idle')) {
+      this.player.anims.play('player_idle', true);
+    }
+    
+    // Scale the player sprite for better visibility
+    this.player.setScale(2);
+    
     return this.player;
   }
 
@@ -45,9 +70,29 @@ class BaseScene extends Phaser.Scene {
   movePlayerTo(targetSprite, onComplete = () => {}) {
     if (!targetSprite || !this.player) return;
     
-    // Get target position
+    // Get target position - offset slightly to stand in front of the object
     const targetX = targetSprite.x;
-    const targetY = targetSprite.y;
+    
+    // For the Y position, position the player at the bottom of the target
+    // plus a small offset so they stand in front of it
+    let targetY = targetSprite.y;
+    
+    // If the target has an origin at the bottom, adjust the position
+    if (targetSprite.originY === 1) {
+      // Position player in front of the object
+      targetY = targetY + 10; // Stand slightly in front
+    }
+    
+    // Special handling for trees
+    if (targetSprite.texture.key === 'harvestTrees') {
+      // Move to the bottom of the tree with some offset
+      targetY = targetY + 15;
+      
+      // Move slightly to the side to look more natural
+      // Randomly choose left or right
+      const sideOffset = Math.random() > 0.5 ? 20 : -20;
+      targetX += sideOffset;
+    }
     
     // Calculate distance for duration
     const distance = Phaser.Math.Distance.Between(
@@ -55,23 +100,35 @@ class BaseScene extends Phaser.Scene {
       targetX, targetY
     );
     
-    // Speed in pixels per second
-    const speed = 200;
-    const duration = distance / speed * 1000;
-    
     // Add a visual indication of the destination
     const destination = this.add.circle(targetX, targetY, 10, 0x00ff00, 0.5);
+    destination.setDepth(100); // Make sure it's visible above other elements
+    
+    // Calculate direction for flipping the sprite
+    const direction = targetX < this.player.x ? -1 : 1;
+    this.player.setFlipX(direction === -1);
+    
+    // Play running animation
+    if (this.anims.exists('player_run')) {
+      this.player.anims.play('player_run', true);
+    }
     
     // Create moving animation
     this.tweens.add({
       targets: this.player,
       x: targetX,
       y: targetY,
-      duration: duration,
+      duration: distance / 200 * 1000, // speed: 200 pixels per second
       ease: 'Linear',
       onComplete: () => {
         // Remove destination indicator
         destination.destroy();
+        
+        // Switch back to idle animation
+        if (this.anims.exists('player_idle')) {
+          this.player.anims.play('player_idle', true);
+        }
+        
         // Call the completion callback
         onComplete();
       }
@@ -82,7 +139,7 @@ class BaseScene extends Phaser.Scene {
     const heart = this.add.sprite(x, y, 'heart').setScale(0);
     this.tweens.add({
       targets: heart,
-      scale: 2,
+      scale: 4, // Increase scale since heart sprite is smaller
       y: y - 50,
       duration: 700,
       ease: 'Quad.out',
