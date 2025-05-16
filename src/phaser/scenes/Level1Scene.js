@@ -10,6 +10,9 @@ class Level1Scene extends BaseScene {
     this.currentTextIndex = 0;
     this.textSpeed = 30; // ms per character
     this.inChat = false;
+    this.conversationId = null; // Store the conversation ID from the API
+    this.isWaitingForResponse = false; // Flag to track if we're waiting for API response
+    // Keep fallback responses in case API fails
     this.chatResponses = {
       'hello': 'Hi there! How are you today?',
       'hi': 'Hello! Nice to meet you!',
@@ -26,6 +29,7 @@ class Level1Scene extends BaseScene {
       'goodbye': 'Hasta luego! It was nice talking to you!'
     };
     this.defaultResponse = "I'm not sure what to say to that. Can you try something else?";
+    this.apiBaseUrl = 'https://groq.leanderziehm.com';
   }
 
   preload() {
@@ -325,6 +329,16 @@ class Level1Scene extends BaseScene {
     });
     this.continueIndicator.setVisible(false);
     this.dialogueContainer.add(this.continueIndicator);
+    
+    // Add loading indicator (three dots)
+    this.loadingIndicator = this.add.text(0, 180, '...', {
+      fontFamily: 'Arial',
+      fontSize: '24px',
+      color: '#ffffff'
+    });
+    this.loadingIndicator.setOrigin(0.5);
+    this.loadingIndicator.setVisible(false);
+    this.dialogueContainer.add(this.loadingIndicator);
   }
   
   showDialogue(text) {
@@ -421,9 +435,29 @@ class Level1Scene extends BaseScene {
     this.inChat = true;
     this.continueIndicator.setVisible(false);
     
-    // Show initial chat message
-    const initialChatMessage = "I'm all ears! What would you like to talk about?";
-    this.showDialogue(initialChatMessage);
+    // Create a new conversation if we don't have one yet
+    if (!this.conversationId) {
+      this.createNewConversation()
+        .then(() => {
+          // Initialize the conversation with a system prompt
+          return this.initializeConversation();
+        })
+        .then(() => {
+          // Show initial chat message
+          const initialChatMessage = "I'm all ears! What would you like to talk about?";
+          this.showDialogue(initialChatMessage);
+        })
+        .catch(error => {
+          console.error('Failed to create or initialize conversation:', error);
+          // Fallback to local chat if API fails
+          const initialChatMessage = "I'm all ears! What would you like to talk about?";
+          this.showDialogue(initialChatMessage);
+        });
+    } else {
+      // If we already have a conversation, just show the initial message
+      const initialChatMessage = "I'm all ears! What would you like to talk about?";
+      this.showDialogue(initialChatMessage);
+    }
     
     // Stop any tweens
     this.tweens.killTweensOf(this.continueIndicator);
@@ -432,21 +466,260 @@ class Level1Scene extends BaseScene {
     window.dispatchEvent(new CustomEvent('chatModeStarted'));
   }
   
+  // Initialize the conversation with a system prompt
+  async initializeConversation() {
+    // Get user profile for context
+    const profile = this.game.registry.get('profile') || {};
+    const playerName = profile.name || 'Player';
+    const targetLanguage = profile.targetLanguage || 'Spanish';
+    const seeksBoy = profile.seeks === 'Boyfriend';
+    const characterName = seeksBoy ? 'Alex' : 'Amelia';
+    
+    // Create a system prompt to initialize the conversation
+    const systemPrompt = `This is a role-play conversation in a language learning game.
+
+CONTEXT:
+- You are ${characterName}, a friendly ${seeksBoy ? 'guy' : 'girl'} the player just met in a park
+- You are a native ${targetLanguage} speaker
+- The player is learning ${targetLanguage}
+- Your goal is to help them practice in a natural conversation
+
+RULES:
+1. Stay in character as ${characterName} at all times
+2. Keep responses conversational and short (1-3 sentences)
+3. Occasionally use simple ${targetLanguage} words or phrases, but translate them
+4. Be friendly, helpful, and encouraging
+5. Talk about your fictional life, hobbies, and interests
+6. Ask questions to keep the conversation going
+7. NEVER mention that you're an AI, language model, or assistant
+
+YOUR BACKGROUND:
+- You're from ${targetLanguage === 'Spanish' ? 'Madrid, Spain' : 'a country where ' + targetLanguage + ' is spoken'}
+- You love meeting new people and helping language learners
+- You have everyday hobbies like ${seeksBoy ? 'playing guitar, soccer, and hiking' : 'painting, reading, and yoga'}
+- You moved to this town recently and enjoy exploring it
+
+When the player sends their first message, respond naturally as ${characterName} would in a casual park conversation.`;
+
+    // Send the system prompt to initialize the conversation context
+    try {
+      if (!this.conversationId) {
+        await this.createNewConversation();
+      }
+      
+      const response = await fetch(`${this.apiBaseUrl}/conversations/${this.conversationId}/messages`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          message: systemPrompt,
+          model: "llama3-70b-8192"
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error(`API Error: ${response.status}`);
+      }
+      
+      // We don't need to do anything with this response as it's just setting up context
+      console.log('Conversation initialized with system prompt');
+      return true;
+    } catch (error) {
+      console.error('Error initializing conversation:', error);
+      throw error;
+    }
+  }
+  
+  // Create a new conversation with the API
+  async createNewConversation() {
+    try {
+      const response = await fetch(`${this.apiBaseUrl}/conversations`, {
+        method: 'POST'
+      });
+      
+      if (!response.ok) {
+        throw new Error(`API Error: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      this.conversationId = data.id;
+      console.log('New conversation created with ID:', this.conversationId);
+      return this.conversationId;
+    } catch (error) {
+      console.error('Error creating conversation:', error);
+      throw error;
+    }
+  }
+  
+  // Send a message to the API and get a response
+  async sendMessageToAPI(message) {
+    if (!this.conversationId) {
+      try {
+        await this.createNewConversation();
+      } catch (error) {
+        console.error('Failed to create conversation:', error);
+        return null;
+      }
+    }
+    
+    // Get user profile information for context
+    const profile = this.game.registry.get('profile') || {};
+    const playerName = profile.name || 'Player';
+    const targetLanguage = profile.targetLanguage || 'Spanish';
+    const seeksBoy = profile.seeks === 'Boyfriend';
+    const characterName = seeksBoy ? 'Alex' : 'Amelia';
+    
+    // Create system context to guide the AI response
+    const contextPrompt = `You are ${characterName}, a friendly local in a language learning game. 
+The player (${playerName}) is learning ${targetLanguage}. 
+Respond conversationally as if you're chatting in a park.
+Keep responses short (1-3 sentences).
+Occasionally use simple ${targetLanguage} words or phrases, but translate them to English.
+Your personality: Friendly, helpful, patient with language learners.
+You're from ${targetLanguage === 'Spanish' ? 'Madrid, Spain' : 'a country where ' + targetLanguage + ' is spoken'}.`;
+    
+    // Combine user message with context
+    const fullMessage = `${contextPrompt}\n\nUser message: ${message}`;
+    
+    try {
+      const response = await fetch(`${this.apiBaseUrl}/conversations/${this.conversationId}/messages`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          message: fullMessage,
+          model: "llama3-70b-8192" // Using the specified model
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error(`API Error: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      return data.response;
+    } catch (error) {
+      console.error('Error sending message:', error);
+      return null;
+    }
+  }
+  
+  // Get conversation history from the API
+  async getConversationHistory() {
+    if (!this.conversationId) return [];
+    
+    try {
+      const response = await fetch(`${this.apiBaseUrl}/conversations/${this.conversationId}`);
+      
+      if (!response.ok) {
+        throw new Error(`API Error: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      return data.messages;
+    } catch (error) {
+      console.error('Error fetching conversation history:', error);
+      return [];
+    }
+  }
+  
+  // Delete the current conversation
+  async deleteConversation() {
+    if (!this.conversationId) return;
+    
+    try {
+      const response = await fetch(`${this.apiBaseUrl}/conversations/${this.conversationId}`, {
+        method: 'DELETE'
+      });
+      
+      if (!response.ok) {
+        throw new Error(`API Error: ${response.status}`);
+      }
+      
+      console.log('Conversation deleted successfully');
+      this.conversationId = null;
+    } catch (error) {
+      console.error('Error deleting conversation:', error);
+    }
+  }
+  
+  // Show loading indicator
+  showLoadingIndicator() {
+    if (!this.loadingIndicator) return;
+    
+    this.loadingIndicator.setVisible(true);
+    this.loadingIndicator.setText('.');
+    
+    // Create a loading animation by cycling through different numbers of dots
+    let dots = 0;
+    this.loadingTimer = this.time.addEvent({
+      delay: 500,
+      callback: () => {
+        dots = (dots + 1) % 4;
+        let text = '.'.repeat(dots);
+        if (dots === 0) text = '.';
+        this.loadingIndicator.setText(text);
+      },
+      callbackScope: this,
+      loop: true
+    });
+  }
+  
+  // Hide loading indicator
+  hideLoadingIndicator() {
+    if (!this.loadingIndicator) return;
+    
+    this.loadingIndicator.setVisible(false);
+    if (this.loadingTimer) {
+      this.loadingTimer.remove();
+      this.loadingTimer = null;
+    }
+  }
+  
   setupChatListener() {
     if (typeof window !== 'undefined') {
       console.log('Setting up chat listener in Level1Scene');
       
       const handleChatMessage = (e) => {
         if (!this.isInDialogue || !this.inChat) return;
+        if (this.isWaitingForResponse) return; // Prevent sending multiple messages while waiting
         
         const { message } = e.detail;
         console.log('Chat message received:', message);
         
-        // Get response based on message
-        const response = this.getChatResponse(message);
+        // Set waiting flag
+        this.isWaitingForResponse = true;
         
-        // Show the response
-        this.showDialogue(response);
+        // Clear current dialogue text and show loading indicator
+        this.dialogueText.setText('');
+        this.showLoadingIndicator();
+        
+        // Get response from API
+        this.sendMessageToAPI(message)
+          .then(response => {
+            this.isWaitingForResponse = false;
+            this.hideLoadingIndicator();
+            
+            if (response) {
+              // Show the API response
+              this.showDialogue(response);
+            } else {
+              // Fallback to local response if API fails
+              const fallbackResponse = this.getFallbackResponse(message);
+              this.showDialogue(fallbackResponse);
+            }
+          })
+          .catch(error => {
+            console.error('Error in chat response:', error);
+            this.isWaitingForResponse = false;
+            this.hideLoadingIndicator();
+            
+            // Use fallback response
+            const fallbackResponse = this.getFallbackResponse(message);
+            this.showDialogue(fallbackResponse);
+          });
       };
       
       // Remove any existing listener to avoid duplicates
@@ -460,7 +733,8 @@ class Level1Scene extends BaseScene {
     }
   }
   
-  getChatResponse(input) {
+  // Use the original method as a fallback
+  getFallbackResponse(input) {
     const lowercaseInput = input.toLowerCase().trim();
     
     // Check if we have a hardcoded response for this input
@@ -472,6 +746,11 @@ class Level1Scene extends BaseScene {
     
     // Return default response if no match found
     return this.defaultResponse;
+  }
+  
+  // This is now just a fallback - main implementation is in setupChatListener
+  getChatResponse(input) {
+    return this.getFallbackResponse(input);
   }
   
   setupCommandListener() {
@@ -746,6 +1025,54 @@ class Level1Scene extends BaseScene {
     if (targetId === npcName && verb === 'give') {
       this.instructionText.setText(`The ${npcName} seems interested in talking more.`);
       this.conversationSteps = this.requiredSteps - 1; // Skip ahead
+    }
+  }
+  
+  // Clean up the conversation when leaving the scene
+  shutdown() {
+    // Clean up conversation with API
+    if (this.conversationId) {
+      this.deleteConversation()
+        .catch(error => console.error('Error cleaning up conversation:', error));
+    }
+    
+    // Clean up timers
+    if (this.typewriterTimer) {
+      this.typewriterTimer.remove();
+      this.typewriterTimer = null;
+    }
+    
+    if (this.loadingTimer) {
+      this.loadingTimer.remove();
+      this.loadingTimer = null;
+    }
+    
+    // Stop all tweens
+    this.tweens.killAll();
+    
+    // Hide any UI elements
+    if (this.dialogueContainer) {
+      this.dialogueContainer.setVisible(false);
+    }
+    
+    // Reset flags
+    this.isInDialogue = false;
+    this.inChat = false;
+    this.isWaitingForResponse = false;
+    
+    // Remove event listeners
+    if (typeof window !== 'undefined') {
+      if (this.chatMessageHandler) {
+        window.removeEventListener('chatMessageSent', this.chatMessageHandler);
+      }
+      if (this.commandHandler) {
+        window.removeEventListener('commandSubmitted', this.commandHandler);
+      }
+    }
+    
+    // Call parent shutdown if it exists
+    if (super.shutdown) {
+      super.shutdown();
     }
   }
 }
