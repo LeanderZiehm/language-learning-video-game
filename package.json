@@ -1,0 +1,26 @@
+{
+  "name": "lovelingo-quest",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "A language learning game with a romance theme",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "autoprefixer": "^10.4.21",
+    "openai": "^4.0.0",
+    "phaser": "^3.70.0",
+    "postcss": "^8.5.3",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tailwindcss": "^3.4.17"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.21",
+    "@types/react-dom": "^18.3.7",
+    "@vitejs/plugin-react": "^4.4.1",
+    "vite": "^4.5.14"
+  }
+}

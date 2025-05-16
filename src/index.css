@@ -1,0 +1,29 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+  .command-input {
+    @apply w-full px-3 py-2 text-gray-700 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500;
+  }
+  
+  .btn {
+    @apply px-4 py-2 bg-blue-500 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-75;
+  }
+  
+  .btn-mic {
+    @apply p-2 bg-red-500 text-white rounded-full shadow-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-400;
+  }
+  
+  .game-container {
+    @apply flex flex-col h-screen bg-gray-900;
+  }
+  
+  .feedback-panel {
+    @apply bg-white p-4 rounded-lg shadow-lg mb-4;
+  }
+  
+  .pixel-text {
+    @apply font-mono;
+  }
+} 
