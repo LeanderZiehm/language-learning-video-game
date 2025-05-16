@@ -10,6 +10,7 @@ function HUD({ profile }) {
   const [voiceTranscript, setVoiceTranscript] = useState('');
   const speechRecognition = useRef(null);
   const commandInputRef = useRef(null);
+  const feedbackTimeoutRef = useRef(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -65,8 +66,30 @@ function HUD({ profile }) {
       window.removeEventListener('objectClicked', handleObjectClick);
       window.removeEventListener('verbClicked', handleVerbClick);
       window.removeEventListener('levelComplete', handleLevelComplete);
+      
+      // Clear any existing feedback timeout on unmount
+      if (feedbackTimeoutRef.current) {
+        clearTimeout(feedbackTimeoutRef.current);
+      }
     };
   }, [profile]);
+  
+  // Function to set feedback with auto-clearing after 3 seconds
+  const showFeedbackWithTimeout = (feedbackData) => {
+    // Clear any existing timeout
+    if (feedbackTimeoutRef.current) {
+      clearTimeout(feedbackTimeoutRef.current);
+    }
+    
+    // Set the feedback
+    setFeedback(feedbackData);
+    
+    // Set a timeout to clear the feedback after 3 seconds
+    feedbackTimeoutRef.current = setTimeout(() => {
+      setFeedback(null);
+      feedbackTimeoutRef.current = null;
+    }, 3000);
+  };
   
   // Listen for game events to update suggestions
   const handleObjectClick = (e) => {
@@ -117,7 +140,7 @@ function HUD({ profile }) {
         speechRecognition.current.start();
         setIsMicActive(true);
       } else {
-        setFeedback({
+        showFeedbackWithTimeout({
           success: false,
           message: 'Speech recognition not supported in your browser',
           translation: '',
@@ -147,7 +170,7 @@ function HUD({ profile }) {
     
     if (lowerCmd === 'go to tree' || lowerCmd === 'go tree' || 
         lowerCmd === 'go to the tree' || lowerCmd === 'move to tree') {
-      setFeedback({
+      showFeedbackWithTimeout({
         success: true,
         message: 'Great! Your character is moving to the tree.',
         translation: 'Go to the tree',
@@ -155,7 +178,7 @@ function HUD({ profile }) {
       });
     } else if (lowerCmd.includes('go') && lowerCmd.includes(characterType) ||
                lowerCmd.includes('move') && lowerCmd.includes(characterType)) {
-      setFeedback({
+      showFeedbackWithTimeout({
         success: true,
         message: `Your character is moving to the ${characterType}.`,
         translation: `Go to the ${characterType}`,
@@ -163,7 +186,7 @@ function HUD({ profile }) {
       });
     } else if (lowerCmd.includes('talk') && lowerCmd.includes(characterType) ||
                lowerCmd.includes('ask') && lowerCmd.includes(characterType)) {
-      setFeedback({
+      showFeedbackWithTimeout({
         success: true,
         message: `You are talking to the ${characterType}.`,
         translation: `Talk to the ${characterType}`,
@@ -219,7 +242,8 @@ function HUD({ profile }) {
       }
     }
     
-    setFeedback(response);
+    // Show feedback with auto-clearing timeout
+    showFeedbackWithTimeout(response);
   };
   
   const handleSubscribe = () => {

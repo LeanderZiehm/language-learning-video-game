@@ -5,6 +5,28 @@ class Level1Scene extends BaseScene {
     super('Level1Scene');
     this.conversationSteps = 0;
     this.requiredSteps = 3;
+    this.isInDialogue = false;
+    this.dialogueText = '';
+    this.currentTextIndex = 0;
+    this.textSpeed = 30; // ms per character
+    this.inChat = false;
+    this.playerInput = '';
+    this.chatResponses = {
+      'hello': 'Hi there! How are you today?',
+      'hi': 'Hello! Nice to meet you!',
+      'how are you': 'I\'m doing great, thanks for asking!',
+      'what\'s your name': 'My name is Amelia. What\'s yours?',
+      'name': 'My name is Amelia. What\'s yours?',
+      'where are you from': 'I\'m from Madrid. I moved here a few months ago.',
+      'from': 'I\'m from Madrid. I moved here a few months ago.',
+      'do you speak spanish': 'Sí, hablo español! ¿Tu hablas español también?',
+      'spanish': 'Sí, hablo español! ¿Tu hablas español también?',
+      'i like you': 'Aw, that\'s sweet of you to say! I enjoy talking with you too.',
+      'like you': 'Aw, that\'s sweet of you to say! I enjoy talking with you too.',
+      'bye': 'Goodbye! Hope to see you again soon!',
+      'goodbye': 'Hasta luego! It was nice talking to you!'
+    };
+    this.defaultResponse = "I'm not sure what to say to that. Can you try something else?";
   }
 
   preload() {
@@ -42,6 +64,9 @@ class Level1Scene extends BaseScene {
     
     // Load vegetation
     this.load.image('trees', 'assets/Harvest Sumer Free Ver. Pack/Harvest Sumer Free Ver. Pack/Vegetation/Trees 3.png');
+    
+    // Load close-up sprite
+    this.load.image('sprite_close_up', 'src/assets/sprite_close_up.webp');
   }
 
   create() {
@@ -66,8 +91,52 @@ class Level1Scene extends BaseScene {
     // Add text for instructions
     this.createGameText();
     
+    // Create dialogue UI (initially hidden)
+    this.createDialogueUI();
+    
     // Set up command listener
     this.setupCommandListener();
+    
+    // Setup input for advancing dialogue and chat
+    this.input.on('pointerdown', () => {
+      if (this.isInDialogue && !this.inChat) {
+        if (this.isTextComplete) {
+          this.hideDialogue();
+        } else {
+          // If text is still typing, complete it immediately
+          this.completeText();
+        }
+      }
+    });
+    
+    // Setup keyboard input for dialogue and chat
+    this.input.keyboard.on('keydown', (event) => {
+      if (this.isInDialogue) {
+        if (this.inChat) {
+          // Handle chat input
+          if (event.key === 'Backspace') {
+            this.playerInput = this.playerInput.slice(0, -1);
+            this.updateChatInputDisplay();
+          } else if (event.key === 'Enter') {
+            this.submitChatMessage();
+          } else if (event.key.length === 1) {
+            // Only add printable characters
+            this.playerInput += event.key;
+            this.updateChatInputDisplay();
+          }
+        } else if (this.isTextComplete) {
+          // Handle dialogue navigation
+          if (event.key === ' ' || event.key === 'Enter') {
+            this.hideDialogue();
+          } else if (event.key === 'c' || event.key === 'C') {
+            this.showChatInput();
+          }
+        } else {
+          // If text is still typing and any key is pressed, complete it
+          this.completeText();
+        }
+      }
+    });
     
     console.log('Level1Scene created successfully');
   }
@@ -224,6 +293,231 @@ class Level1Scene extends BaseScene {
     // Add collision with player
     this.physics.add.collider(this.player, this.npc);
   }
+
+  createDialogueUI() {
+    // Create a container for dialogue elements
+    this.dialogueContainer = this.add.container(400, 300);
+    this.dialogueContainer.setDepth(1000); // Set high depth to appear above everything
+    this.dialogueContainer.setVisible(false);
+    
+    // Add dark overlay
+    this.overlay = this.add.rectangle(0, 0, 800, 600, 0x000000, 0.7);
+    this.overlay.setOrigin(0.5);
+    this.dialogueContainer.add(this.overlay);
+    
+    // Add character portrait (close-up)
+    this.portrait = this.add.image(0, -50, 'sprite_close_up');
+    // Scale the portrait to fit nicely
+    if (this.textures.exists('sprite_close_up')) {
+      this.portrait.setScale(0.5);
+    } else {
+      // Create a placeholder portrait if image doesn't exist
+      this.portrait = this.add.rectangle(0, -50, 300, 300, 0xff44aa);
+      this.portrait.setOrigin(0.5);
+    }
+    this.dialogueContainer.add(this.portrait);
+    
+    // Add dialogue box
+    this.dialogueBox = this.add.rectangle(0, 150, 700, 150, 0x222222, 0.9);
+    this.dialogueBox.setStrokeStyle(4, 0xffffff);
+    this.dialogueContainer.add(this.dialogueBox);
+    
+    // Add text
+    this.dialogueText = this.add.text(-325, 90, '', {
+      fontFamily: 'Arial',
+      fontSize: '24px',
+      color: '#ffffff',
+      wordWrap: { width: 650 }
+    });
+    this.dialogueContainer.add(this.dialogueText);
+    
+    // Add click to continue indicator
+    this.continueIndicator = this.add.text(300, 180, '[ Click to continue ]', {
+      fontFamily: 'Arial',
+      fontSize: '16px',
+      color: '#ffffff'
+    });
+    this.continueIndicator.setVisible(false);
+    this.dialogueContainer.add(this.continueIndicator);
+    
+    // Add chat input elements (initially hidden)
+    this.chatInputBox = this.add.rectangle(0, 230, 700, 40, 0x333333);
+    this.chatInputBox.setStrokeStyle(2, 0xffffff);
+    this.chatInputBox.setVisible(false);
+    this.dialogueContainer.add(this.chatInputBox);
+    
+    this.chatInputText = this.add.text(-325, 222, '> ', {
+      fontFamily: 'Arial',
+      fontSize: '18px',
+      color: '#ffffff'
+    });
+    this.chatInputText.setVisible(false);
+    this.dialogueContainer.add(this.chatInputText);
+    
+    this.chatSubmitButton = this.add.rectangle(325, 230, 80, 30, 0x555555);
+    this.chatSubmitButton.setStrokeStyle(1, 0xffffff);
+    this.chatSubmitButton.setInteractive({ useHandCursor: true });
+    this.chatSubmitButton.on('pointerdown', this.submitChatMessage.bind(this));
+    this.chatSubmitButton.setVisible(false);
+    this.dialogueContainer.add(this.chatSubmitButton);
+    
+    this.chatSubmitText = this.add.text(295, 222, 'Send', {
+      fontFamily: 'Arial',
+      fontSize: '16px',
+      color: '#ffffff'
+    });
+    this.chatSubmitText.setVisible(false);
+    this.dialogueContainer.add(this.chatSubmitText);
+    
+    // Add chat indicator 
+    this.chatIndicator = this.add.text(0, 180, '[ Press ENTER to chat ]', {
+      fontFamily: 'Arial',
+      fontSize: '16px',
+      color: '#ffffff'
+    });
+    this.chatIndicator.setOrigin(0.5);
+    this.chatIndicator.setVisible(false);
+    this.dialogueContainer.add(this.chatIndicator);
+  }
+  
+  showDialogue(text) {
+    // Show dialogue UI
+    this.dialogueContainer.setVisible(true);
+    this.isInDialogue = true;
+    this.fullText = text;
+    this.currentDisplayedText = '';
+    this.currentTextIndex = 0;
+    this.isTextComplete = false;
+    this.dialogueText.setText('');
+    this.continueIndicator.setVisible(false);
+    this.chatIndicator.setVisible(false);
+    this.hideChatInput();
+    
+    // Start typing effect
+    this.typewriterTimer = this.time.addEvent({
+      delay: this.textSpeed,
+      callback: this.typeNextLetter,
+      callbackScope: this,
+      loop: true
+    });
+  }
+  
+  typeNextLetter() {
+    if (this.currentTextIndex < this.fullText.length) {
+      // Add next letter
+      this.currentDisplayedText += this.fullText.charAt(this.currentTextIndex);
+      this.dialogueText.setText(this.currentDisplayedText);
+      this.currentTextIndex++;
+    } else {
+      // Text is complete
+      this.typewriterTimer.remove();
+      this.isTextComplete = true;
+      
+      if (this.inChat) {
+        this.showChatInput();
+      } else {
+        this.continueIndicator.setVisible(true);
+        this.chatIndicator.setVisible(true);
+        
+        // Add blinking effect to indicators
+        this.tweens.add({
+          targets: [this.continueIndicator, this.chatIndicator],
+          alpha: 0.5,
+          duration: 500,
+          yoyo: true,
+          repeat: -1
+        });
+      }
+    }
+  }
+  
+  completeText() {
+    // Immediately show full text
+    if (this.typewriterTimer) {
+      this.typewriterTimer.remove();
+    }
+    this.dialogueText.setText(this.fullText);
+    this.isTextComplete = true;
+    
+    if (this.inChat) {
+      this.showChatInput();
+    } else {
+      this.continueIndicator.setVisible(true);
+      this.chatIndicator.setVisible(true);
+    }
+  }
+  
+  hideDialogue() {
+    this.dialogueContainer.setVisible(false);
+    this.isInDialogue = false;
+    this.inChat = false;
+    if (this.typewriterTimer) {
+      this.typewriterTimer.remove();
+    }
+    
+    // Stop any tweens on the indicators
+    this.tweens.killTweensOf(this.continueIndicator);
+    this.tweens.killTweensOf(this.chatIndicator);
+    
+    // Hide chat input
+    this.hideChatInput();
+  }
+  
+  showChatInput() {
+    this.inChat = true;
+    this.chatInputBox.setVisible(true);
+    this.chatInputText.setVisible(true);
+    this.chatSubmitButton.setVisible(true);
+    this.chatSubmitText.setVisible(true);
+    this.continueIndicator.setVisible(false);
+    this.chatIndicator.setVisible(false);
+    this.playerInput = '';
+    this.updateChatInputDisplay();
+    
+    // Stop any tweens
+    this.tweens.killTweensOf(this.continueIndicator);
+    this.tweens.killTweensOf(this.chatIndicator);
+  }
+  
+  hideChatInput() {
+    this.chatInputBox.setVisible(false);
+    this.chatInputText.setVisible(false);
+    this.chatSubmitButton.setVisible(false);
+    this.chatSubmitText.setVisible(false);
+    this.playerInput = '';
+  }
+  
+  updateChatInputDisplay() {
+    this.chatInputText.setText('> ' + this.playerInput);
+  }
+  
+  submitChatMessage() {
+    if (this.playerInput.trim() === '') return;
+    
+    // Get response based on input
+    const response = this.getChatResponse(this.playerInput);
+    
+    // Display the response
+    this.showDialogue(response);
+    
+    // Reset chat state
+    this.playerInput = '';
+    this.inChat = true;
+  }
+  
+  getChatResponse(input) {
+    const lowercaseInput = input.toLowerCase().trim();
+    
+    // Check if we have a hardcoded response for this input
+    for (const [key, value] of Object.entries(this.chatResponses)) {
+      if (lowercaseInput.includes(key)) {
+        return value;
+      }
+    }
+    
+    // Return default response if no match found
+    return this.defaultResponse;
+  }
   
   setupCommandListener() {
     // Listen for command events from the UI
@@ -231,6 +525,9 @@ class Level1Scene extends BaseScene {
       console.log('Setting up command listener in Level1Scene');
       
       const handleCommand = (e) => {
+        // Don't process commands if in dialogue mode
+        if (this.isInDialogue) return;
+        
         const { command } = e.detail;
         console.log('Level1Scene received command:', command);
         
@@ -276,6 +573,11 @@ class Level1Scene extends BaseScene {
             this.movePlayerTo(npc, () => {
               // Provide success feedback
               this.showFeedback(true);
+              
+              // If it's a "talk to" command, show dialogue
+              if (lowerCmd.includes('talk')) {
+                this.startDialogueWithNPC(npcName);
+              }
             });
           } else {
             console.warn(`${npcName} object not found in interactiveObjects`);
@@ -420,12 +722,48 @@ class Level1Scene extends BaseScene {
     }
   }
   
+  startDialogueWithNPC(npcName) {
+    const profile = this.game.registry.get('profile') || {};
+    const targetLanguage = profile.targetLanguage || 'Spanish';
+    
+    // Define dialogue options based on conversation step
+    let dialogue;
+    switch (this.conversationSteps) {
+      case 0:
+        dialogue = npcName === 'girl' 
+          ? "Hi there! *waves* I haven't seen you around here before. My name is Amelia. What's your name?" 
+          : "Hey! *smiles* I'm Alex. I don't think we've met before. Are you new to this park?";
+        break;
+      case 1:
+        dialogue = npcName === 'girl'
+          ? "Nice to meet you! I love spending time in this park. Do you come here often? I'm trying to learn " + targetLanguage + " actually."
+          : "Cool! I've been visiting this park for years. It's a great place to relax. By the way, I'm learning " + targetLanguage + ". Do you speak it?";
+        break;
+      case 2:
+        dialogue = npcName === 'girl'
+          ? "Really? That's amazing! Maybe we could practice " + targetLanguage + " together sometime? I'd love to improve my speaking skills."
+          : "That's awesome! We should definitely meet up again to practice " + targetLanguage + ". Would you like to exchange numbers?";
+        break;
+      default:
+        dialogue = "It's been great talking to you! Let's continue our conversation next time.";
+    }
+    
+    // Add a prompt about chatting when the dialogue first appears
+    dialogue += "\n\nPress C to chat with me, or click anywhere to continue.";
+    
+    // Show the dialogue
+    this.showDialogue(dialogue);
+  }
+  
   onTalkTo(targetId) {
     const profile = this.game.registry.get('profile') || {};
     const seeksBoy = profile.seeks === 'Boyfriend';
     const npcName = seeksBoy ? 'boy' : 'girl';
     
     if (targetId === npcName) {
+      // Start dialogue with character
+      this.startDialogueWithNPC(npcName);
+      
       this.conversationSteps++;
       
       // Update instruction text based on conversation progress
@@ -434,11 +772,14 @@ class Level1Scene extends BaseScene {
       } else if (this.conversationSteps === 2) {
         this.instructionText.setText(`Great! One more step - ask about their interests.`);
       } else if (this.conversationSteps >= this.requiredSteps) {
-        this.instructionText.setText(`Congratulations! You've made your first contact!`);
+        this.instructionText.setText(`Congratulations! You've made your first contact! Try chatting with ${npcName === 'girl' ? 'her' : 'him'}.`);
         
-        // Delay level completion to allow reading the message
-        this.time.delayedCall(3000, () => {
-          this.completeLevel();
+        // Delay level completion to allow reading the message and chatting
+        this.time.delayedCall(10000, () => {
+          // Only complete level if dialogue is not active
+          if (!this.isInDialogue) {
+            this.completeLevel();
+          }
         });
       }
     }
