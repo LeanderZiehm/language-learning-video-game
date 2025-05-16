@@ -10,6 +10,7 @@ function App() {
     const savedProfile = localStorage.getItem('profile');
     if (savedProfile) {
       setProfile(JSON.parse(savedProfile));
+      handleStartGame();
     }
   }, []);
 
