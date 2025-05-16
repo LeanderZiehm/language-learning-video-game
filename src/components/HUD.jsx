@@ -7,6 +7,7 @@ function HUD({ profile }) {
   const [suggestions, setSuggestions] = useState([]);
   const [showPaywall, setShowPaywall] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
+  const [voiceTranscript, setVoiceTranscript] = useState('');
   const speechRecognition = useRef(null);
   const commandInputRef = useRef(null);
 
@@ -21,22 +22,29 @@ function HUD({ profile }) {
         const recognition = new SpeechRecognition();
         
         recognition.continuous = false;
-        recognition.interimResults = false;
+        recognition.interimResults = true;
         
         recognition.onresult = (event) => {
-          const transcript = event.results[0][0].transcript;
-          setCommand(transcript);
-          handleCommandSubmit(transcript);
-          setIsMicActive(false);
+          let interimTranscript = '';
+          let finalTranscript = '';
+
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            const transcript = event.results[i][0].transcript;
+            if (event.results[i].isFinal) {
+              finalTranscript += transcript;
+              setCommand(finalTranscript);
+              handleCommandSubmit(finalTranscript);
+              setVoiceTranscript('');
+            } else {
+              interimTranscript += transcript;
+              setVoiceTranscript(interimTranscript);
+            }
+          }
         };
-        
-        recognition.onerror = (event) => {
-          console.error('Speech recognition error', event.error);
-          setIsMicActive(false);
-        };
-        
+
         recognition.onend = () => {
           setIsMicActive(false);
+          setVoiceTranscript('');
         };
         
         speechRecognition.current = recognition;
@@ -244,6 +252,13 @@ function HUD({ profile }) {
         </div>
       )}
       
+      {/* Voice Transcript */}
+      {isMicActive && voiceTranscript && (
+        <div className="bg-blue-100 p-2 mb-2 rounded text-blue-800 animate-pulse">
+          <p>Listening: {voiceTranscript}</p>
+        </div>
+      )}
+
       <div className="flex items-center">
         <input
           ref={commandInputRef}
