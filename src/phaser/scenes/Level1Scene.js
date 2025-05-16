@@ -10,7 +10,6 @@ class Level1Scene extends BaseScene {
     this.currentTextIndex = 0;
     this.textSpeed = 30; // ms per character
     this.inChat = false;
-    this.playerInput = '';
     this.chatResponses = {
       'hello': 'Hi there! How are you today?',
       'hi': 'Hello! Nice to meet you!',
@@ -97,11 +96,14 @@ class Level1Scene extends BaseScene {
     // Set up command listener
     this.setupCommandListener();
     
-    // Setup input for advancing dialogue and chat
+    // Set up chat message listener
+    this.setupChatListener();
+    
+    // Setup input for advancing dialogue
     this.input.on('pointerdown', () => {
       if (this.isInDialogue && !this.inChat) {
         if (this.isTextComplete) {
-          this.hideDialogue();
+          this.startChatMode();
         } else {
           // If text is still typing, complete it immediately
           this.completeText();
@@ -109,28 +111,12 @@ class Level1Scene extends BaseScene {
       }
     });
     
-    // Setup keyboard input for dialogue and chat
+    // Setup keyboard input for dialogue
     this.input.keyboard.on('keydown', (event) => {
-      if (this.isInDialogue) {
-        if (this.inChat) {
-          // Handle chat input
-          if (event.key === 'Backspace') {
-            this.playerInput = this.playerInput.slice(0, -1);
-            this.updateChatInputDisplay();
-          } else if (event.key === 'Enter') {
-            this.submitChatMessage();
-          } else if (event.key.length === 1) {
-            // Only add printable characters
-            this.playerInput += event.key;
-            this.updateChatInputDisplay();
-          }
-        } else if (this.isTextComplete) {
-          // Handle dialogue navigation
-          if (event.key === ' ' || event.key === 'Enter') {
-            this.hideDialogue();
-          } else if (event.key === 'c' || event.key === 'C') {
-            this.showChatInput();
-          }
+      if (this.isInDialogue && !this.inChat) {
+        if (this.isTextComplete) {
+          // Automatically go to chat mode when the dialogue is complete
+          this.startChatMode();
         } else {
           // If text is still typing and any key is pressed, complete it
           this.completeText();
@@ -339,45 +325,6 @@ class Level1Scene extends BaseScene {
     });
     this.continueIndicator.setVisible(false);
     this.dialogueContainer.add(this.continueIndicator);
-    
-    // Add chat input elements (initially hidden)
-    this.chatInputBox = this.add.rectangle(0, 230, 700, 40, 0x333333);
-    this.chatInputBox.setStrokeStyle(2, 0xffffff);
-    this.chatInputBox.setVisible(false);
-    this.dialogueContainer.add(this.chatInputBox);
-    
-    this.chatInputText = this.add.text(-325, 222, '> ', {
-      fontFamily: 'Arial',
-      fontSize: '18px',
-      color: '#ffffff'
-    });
-    this.chatInputText.setVisible(false);
-    this.dialogueContainer.add(this.chatInputText);
-    
-    this.chatSubmitButton = this.add.rectangle(325, 230, 80, 30, 0x555555);
-    this.chatSubmitButton.setStrokeStyle(1, 0xffffff);
-    this.chatSubmitButton.setInteractive({ useHandCursor: true });
-    this.chatSubmitButton.on('pointerdown', this.submitChatMessage.bind(this));
-    this.chatSubmitButton.setVisible(false);
-    this.dialogueContainer.add(this.chatSubmitButton);
-    
-    this.chatSubmitText = this.add.text(295, 222, 'Send', {
-      fontFamily: 'Arial',
-      fontSize: '16px',
-      color: '#ffffff'
-    });
-    this.chatSubmitText.setVisible(false);
-    this.dialogueContainer.add(this.chatSubmitText);
-    
-    // Add chat indicator 
-    this.chatIndicator = this.add.text(0, 180, '[ Press ENTER to chat ]', {
-      fontFamily: 'Arial',
-      fontSize: '16px',
-      color: '#ffffff'
-    });
-    this.chatIndicator.setOrigin(0.5);
-    this.chatIndicator.setVisible(false);
-    this.dialogueContainer.add(this.chatIndicator);
   }
   
   showDialogue(text) {
@@ -390,8 +337,14 @@ class Level1Scene extends BaseScene {
     this.isTextComplete = false;
     this.dialogueText.setText('');
     this.continueIndicator.setVisible(false);
-    this.chatIndicator.setVisible(false);
-    this.hideChatInput();
+    
+    // Notify HUD that dialogue has started if not already in chat mode
+    if (!this.inChat) {
+      window.dispatchEvent(new CustomEvent('dialogueStarted'));
+    } else {
+      // If we're already in chat mode, notify HUD
+      window.dispatchEvent(new CustomEvent('chatModeStarted'));
+    }
     
     // Start typing effect
     this.typewriterTimer = this.time.addEvent({
@@ -413,19 +366,23 @@ class Level1Scene extends BaseScene {
       this.typewriterTimer.remove();
       this.isTextComplete = true;
       
-      if (this.inChat) {
-        this.showChatInput();
-      } else {
+      if (!this.inChat) {
         this.continueIndicator.setVisible(true);
-        this.chatIndicator.setVisible(true);
         
         // Add blinking effect to indicators
         this.tweens.add({
-          targets: [this.continueIndicator, this.chatIndicator],
+          targets: this.continueIndicator,
           alpha: 0.5,
           duration: 500,
           yoyo: true,
           repeat: -1
+        });
+        
+        // Automatically go to chat mode after a brief delay (1.5 seconds)
+        this.time.delayedCall(1500, () => {
+          if (this.isInDialogue && !this.inChat) {
+            this.startChatMode();
+          }
         });
       }
     }
@@ -439,11 +396,8 @@ class Level1Scene extends BaseScene {
     this.dialogueText.setText(this.fullText);
     this.isTextComplete = true;
     
-    if (this.inChat) {
-      this.showChatInput();
-    } else {
+    if (!this.inChat) {
       this.continueIndicator.setVisible(true);
-      this.chatIndicator.setVisible(true);
     }
   }
   
@@ -457,52 +411,53 @@ class Level1Scene extends BaseScene {
     
     // Stop any tweens on the indicators
     this.tweens.killTweensOf(this.continueIndicator);
-    this.tweens.killTweensOf(this.chatIndicator);
     
-    // Hide chat input
-    this.hideChatInput();
+    // Notify HUD that dialogue has ended
+    window.dispatchEvent(new CustomEvent('dialogueEnded'));
   }
   
-  showChatInput() {
+  startChatMode() {
+    // Enter chat mode
     this.inChat = true;
-    this.chatInputBox.setVisible(true);
-    this.chatInputText.setVisible(true);
-    this.chatSubmitButton.setVisible(true);
-    this.chatSubmitText.setVisible(true);
     this.continueIndicator.setVisible(false);
-    this.chatIndicator.setVisible(false);
-    this.playerInput = '';
-    this.updateChatInputDisplay();
+    
+    // Show initial chat message
+    const initialChatMessage = "I'm all ears! What would you like to talk about?";
+    this.showDialogue(initialChatMessage);
     
     // Stop any tweens
     this.tweens.killTweensOf(this.continueIndicator);
-    this.tweens.killTweensOf(this.chatIndicator);
+    
+    // Notify HUD that chat mode has started
+    window.dispatchEvent(new CustomEvent('chatModeStarted'));
   }
   
-  hideChatInput() {
-    this.chatInputBox.setVisible(false);
-    this.chatInputText.setVisible(false);
-    this.chatSubmitButton.setVisible(false);
-    this.chatSubmitText.setVisible(false);
-    this.playerInput = '';
-  }
-  
-  updateChatInputDisplay() {
-    this.chatInputText.setText('> ' + this.playerInput);
-  }
-  
-  submitChatMessage() {
-    if (this.playerInput.trim() === '') return;
-    
-    // Get response based on input
-    const response = this.getChatResponse(this.playerInput);
-    
-    // Display the response
-    this.showDialogue(response);
-    
-    // Reset chat state
-    this.playerInput = '';
-    this.inChat = true;
+  setupChatListener() {
+    if (typeof window !== 'undefined') {
+      console.log('Setting up chat listener in Level1Scene');
+      
+      const handleChatMessage = (e) => {
+        if (!this.isInDialogue || !this.inChat) return;
+        
+        const { message } = e.detail;
+        console.log('Chat message received:', message);
+        
+        // Get response based on message
+        const response = this.getChatResponse(message);
+        
+        // Show the response
+        this.showDialogue(response);
+      };
+      
+      // Remove any existing listener to avoid duplicates
+      window.removeEventListener('chatMessageSent', handleChatMessage);
+      
+      // Add the new listener
+      window.addEventListener('chatMessageSent', handleChatMessage);
+      
+      // Store the reference
+      this.chatMessageHandler = handleChatMessage;
+    }
   }
   
   getChatResponse(input) {
@@ -745,11 +700,8 @@ class Level1Scene extends BaseScene {
           : "That's awesome! We should definitely meet up again to practice " + targetLanguage + ". Would you like to exchange numbers?";
         break;
       default:
-        dialogue = "It's been great talking to you! Let's continue our conversation next time.";
+        dialogue = "It's been great talking to you! Let's continue our conversation now.";
     }
-    
-    // Add a prompt about chatting when the dialogue first appears
-    dialogue += "\n\nPress C to chat with me, or click anywhere to continue.";
     
     // Show the dialogue
     this.showDialogue(dialogue);

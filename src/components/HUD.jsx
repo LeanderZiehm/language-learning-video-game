@@ -8,6 +8,8 @@ function HUD({ profile }) {
   const [showPaywall, setShowPaywall] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [voiceTranscript, setVoiceTranscript] = useState('');
+  const [isInDialogue, setIsInDialogue] = useState(false);
+  const [chatPlaceholder, setChatPlaceholder] = useState('Type a command like \'go to tree\'...');
   const speechRecognition = useRef(null);
   const commandInputRef = useRef(null);
   const feedbackTimeoutRef = useRef(null);
@@ -33,12 +35,12 @@ function HUD({ profile }) {
             const transcript = event.results[i][0].transcript;
             if (event.results[i].isFinal) {
               finalTranscript += transcript;
-              setCommand(finalTranscript);           // Set final command
-              handleCommandSubmit(finalTranscript);  // Submit the command
-              setVoiceTranscript('');                // Clear interim transcript
+              setCommand(finalTranscript);           
+              handleCommandSubmit(finalTranscript);  
+              setVoiceTranscript('');                
             } else {
               interimTranscript += transcript;
-              setVoiceTranscript(interimTranscript); // ✅ Set real-time transcript here
+              setVoiceTranscript(interimTranscript); 
             }
           }
         };
@@ -56,6 +58,9 @@ function HUD({ profile }) {
     window.addEventListener('objectClicked', handleObjectClick);
     window.addEventListener('verbClicked', handleVerbClick);
     window.addEventListener('levelComplete', handleLevelComplete);
+    window.addEventListener('dialogueStarted', handleDialogueStarted);
+    window.addEventListener('dialogueEnded', handleDialogueEnded);
+    window.addEventListener('chatModeStarted', handleChatModeStarted);
     
     // Set initial suggestions based on profile
     const seeksBoy = profile?.seeks === 'Boyfriend';
@@ -66,6 +71,9 @@ function HUD({ profile }) {
       window.removeEventListener('objectClicked', handleObjectClick);
       window.removeEventListener('verbClicked', handleVerbClick);
       window.removeEventListener('levelComplete', handleLevelComplete);
+      window.removeEventListener('dialogueStarted', handleDialogueStarted);
+      window.removeEventListener('dialogueEnded', handleDialogueEnded);
+      window.removeEventListener('chatModeStarted', handleChatModeStarted);
       
       // Clear any existing feedback timeout on unmount
       if (feedbackTimeoutRef.current) {
@@ -74,8 +82,32 @@ function HUD({ profile }) {
     };
   }, [profile]);
   
+  // Handle dialogue mode changes
+  const handleDialogueStarted = (e) => {
+    setIsInDialogue(true);
+    setChatPlaceholder('Type a command like \'go to tree\'...');
+  };
+  
+  const handleDialogueEnded = () => {
+    setIsInDialogue(false);
+    setChatPlaceholder('Type a command like \'go to tree\'...');
+  };
+  
+  const handleChatModeStarted = () => {
+    setChatPlaceholder('Type your message here and press Enter...');
+    // Focus the input field
+    setTimeout(() => {
+      if (commandInputRef.current) {
+        commandInputRef.current.focus();
+      }
+    }, 100);
+  };
+  
   // Function to set feedback with auto-clearing after 3 seconds
   const showFeedbackWithTimeout = (feedbackData) => {
+    // Don't show feedback in dialogue mode
+    if (isInDialogue) return;
+    
     // Clear any existing timeout
     if (feedbackTimeoutRef.current) {
       clearTimeout(feedbackTimeoutRef.current);
@@ -93,6 +125,9 @@ function HUD({ profile }) {
   
   // Listen for game events to update suggestions
   const handleObjectClick = (e) => {
+    // Don't handle object clicks in dialogue mode
+    if (isInDialogue) return;
+    
     const { objectName } = e.detail;
     if (objectName) {
       setCommand(prev => {
@@ -109,6 +144,9 @@ function HUD({ profile }) {
   };
   
   const handleVerbClick = (e) => {
+    // Don't handle verb clicks in dialogue mode
+    if (isInDialogue) return;
+    
     const { verb } = e.detail;
     if (verb) {
       setCommand(prev => {
@@ -156,6 +194,17 @@ function HUD({ profile }) {
     // Log for debugging
     console.log('Submitting command:', cmd);
     
+    // In dialogue mode, we're sending chat messages
+    if (isInDialogue) {
+      console.log('Sending chat message:', cmd);
+      window.dispatchEvent(new CustomEvent('chatMessageSent', { 
+        detail: { message: cmd } 
+      }));
+      setCommand('');
+      return;
+    }
+    
+    // If not in dialogue mode, handle normal commands
     // Send command to game with a short delay to ensure the game is ready
     setTimeout(() => {
       window.dispatchEvent(new CustomEvent('commandSubmitted', { 
@@ -203,6 +252,8 @@ function HUD({ profile }) {
   
   const handleKeyPress = (e) => {
     if (e.key === 'Enter') {
+      // Prevent form submission
+      e.preventDefault();
       handleCommandSubmit();
     }
   };
@@ -257,7 +308,7 @@ function HUD({ profile }) {
   
   return (
     <div className="fixed bottom-0 left-0 right-0 p-2 bg-gray-800 bg-opacity-90 border-t border-gray-700">
-      {feedback && (
+      {feedback && !isInDialogue && (
         <div className={`feedback-panel mb-2 p-2 rounded ${feedback.success ? 'bg-green-100' : 'bg-red-100'}`}>
           <p className={`${feedback.success ? 'text-green-800' : 'text-red-800'} text-sm`}>
             {feedback.message}
@@ -270,7 +321,7 @@ function HUD({ profile }) {
       )}
       
       {/* Suggestions */}
-      {suggestions.length > 0 && !feedback && (
+      {suggestions.length > 0 && !feedback && !isInDialogue && (
         <div className="bg-gray-700 p-1 mb-1 rounded text-white text-xs">
           <p>Try typing: {suggestions.map(s => <span key={s} className="bg-gray-600 px-2 py-1 rounded mr-2 cursor-pointer" onClick={() => setCommand(s)}>{s}</span>)}</p>
         </div>
@@ -283,32 +334,37 @@ function HUD({ profile }) {
         </div>
       )}
 
-      <div className="flex items-center">
+      <form onSubmit={(e) => {
+        e.preventDefault();
+        handleCommandSubmit();
+      }} className="flex items-center">
         <input
           ref={commandInputRef}
           type="text"
           value={command}
           onChange={(e) => setCommand(e.target.value)}
           onKeyPress={handleKeyPress}
-          placeholder="Type a command like 'go to tree'..."
-          className="command-input flex-grow p-1 text-sm"
+          placeholder={chatPlaceholder}
+          className={`command-input flex-grow p-1 text-sm ${isInDialogue ? 'bg-gray-700 text-white' : ''}`}
         />
         <button 
+          type="button"
           onClick={toggleMic}
           className={`btn-mic ml-2 p-1 ${isMicActive ? 'bg-red-700 animate-pulse' : 'bg-red-500'}`}
           aria-label="Toggle microphone"
+          disabled={isInDialogue}
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
           </svg>
         </button>
         <button
-          onClick={() => handleCommandSubmit()}
-          className="btn ml-2 p-1 px-2 text-sm"
+          type="submit"
+          className={`btn ml-2 p-1 px-2 text-sm ${isInDialogue ? 'bg-blue-600 hover:bg-blue-700' : ''}`}
         >
-          Submit
+          {isInDialogue ? 'Send' : 'Submit'}
         </button>
-      </div>
+      </form>
       
       {/* Paywall Modal */}
       {showPaywall && !isSubscribed && (
