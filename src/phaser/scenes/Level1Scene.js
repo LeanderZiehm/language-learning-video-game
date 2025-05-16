@@ -42,7 +42,6 @@ class Level1Scene extends BaseScene {
     
     // Load vegetation
     this.load.image('trees', 'assets/Harvest Sumer Free Ver. Pack/Harvest Sumer Free Ver. Pack/Vegetation/Trees 3.png');
-    this.load.image('veg_objects', 'assets/Harvest Sumer Free Ver. Pack/Harvest Sumer Free Ver. Pack/Vegetation/Some Objects.png');
   }
 
   create() {
@@ -57,9 +56,6 @@ class Level1Scene extends BaseScene {
     
     // Add trees and decorations
     this.createTrees();
-    
-    // Add a bench
-    this.createBench();
     
     // Add player character
     this.createPlayerCharacter();
@@ -175,47 +171,6 @@ class Level1Scene extends BaseScene {
       treeSprite.setScale(tree.scale);
       treeSprite.setDepth(tree.y);
     });
-    
-    // Add some flowers and small vegetation
-    const vegPositions = [
-      { x: 300, y: 300 },
-      { x: 500, y: 200 },
-      { x: 250, y: 400 },
-      { x: 550, y: 350 }
-    ];
-    
-    vegPositions.forEach(pos => {
-      const veg = this.add.image(pos.x, pos.y, 'veg_objects');
-      veg.setScale(2);
-      veg.setDepth(pos.y);
-      
-      // Make the flowers interactive
-      if (pos.x === 500 && pos.y === 200) {
-        this.physics.world.enable(veg);
-        veg.body.setImmovable(true);
-        this.makeInteractive(veg, 'flowers');
-      }
-    });
-  }
-  
-  createBench() {
-    // Create a bench using the Room_Builder tileset
-    if (this.textures.exists('tiles_room')) {
-      const bench = this.add.image(600, 400, 'tiles_room');
-      bench.setScale(2);
-      
-      // Set crop to select a bench tile
-      bench.setCrop(368, 128, 32, 16);
-      
-      bench.setDepth(400);
-      
-      // Add physics
-      this.physics.world.enable(bench);
-      bench.body.setImmovable(true);
-      
-      // Make it interactive
-      this.makeInteractive(bench, 'bench');
-    }
   }
   
   createPlayerCharacter() {
@@ -279,8 +234,9 @@ class Level1Scene extends BaseScene {
         const { command } = e.detail;
         console.log('Level1Scene received command:', command);
         
-        // Check specifically for "go to tree" variations
         const lowerCmd = command.toLowerCase().trim();
+        
+        // Check specifically for "go/move to tree" variations
         if (lowerCmd.includes('tree')) {
           console.log('Tree command detected');
           // Find the tree object
@@ -302,6 +258,27 @@ class Level1Scene extends BaseScene {
             });
           } else {
             console.warn('Tree object not found in interactiveObjects');
+          }
+        } 
+        // Check for "go/move to girl/boy" variations
+        else if (lowerCmd.includes('girl') || lowerCmd.includes('boy')) {
+          const profile = this.game.registry.get('profile') || {};
+          const seeksBoy = profile.seeks === 'Boyfriend';
+          const npcName = seeksBoy ? 'boy' : 'girl';
+          
+          console.log(`${npcName} command detected`);
+          
+          // Find the NPC object
+          const npc = this.interactiveObjects[npcName];
+          if (npc) {
+            console.log(`${npcName} found, moving player`);
+            // Move player to the NPC
+            this.movePlayerTo(npc, () => {
+              // Provide success feedback
+              this.showFeedback(true);
+            });
+          } else {
+            console.warn(`${npcName} object not found in interactiveObjects`);
           }
         } else {
           // Pass to the normal command parser for other commands
@@ -473,11 +450,8 @@ class Level1Scene extends BaseScene {
     const seeksBoy = profile.seeks === 'Boyfriend';
     const npcName = seeksBoy ? 'boy' : 'girl';
     
-    if (targetId === 'flowers' && verb === 'pick') {
-      this.pickedFlowers = true;
-      this.instructionText.setText(`You picked some pretty flowers. Maybe give them to the ${npcName}?`);
-    } else if (targetId === npcName && verb === 'give' && this.pickedFlowers) {
-      this.instructionText.setText(`The ${npcName} loved the flowers! They seem interested in talking more.`);
+    if (targetId === npcName && verb === 'give') {
+      this.instructionText.setText(`The ${npcName} seems interested in talking more.`);
       this.conversationSteps = this.requiredSteps - 1; // Skip ahead
     }
   }

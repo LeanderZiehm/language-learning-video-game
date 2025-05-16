@@ -40,8 +40,8 @@ class BaseScene extends Phaser.Scene {
     
     const { verb, targetId } = parsedCommand;
     
-    // Special case for tree commands - attempt to directly get the tree
-    if (targetId.includes('tree')) {
+    // Special case for tree commands
+    if (targetId === 'tree' || targetId.includes('tree')) {
       console.log('Tree command detected in BaseScene');
       const tree = this.interactiveObjects['tree'];
       if (tree && (verb === 'go' || verb === 'walk' || verb === 'move')) {
@@ -60,6 +60,33 @@ class BaseScene extends Phaser.Scene {
       }
     }
     
+    // Special case for girl/boy commands
+    if (targetId === 'girl' || targetId === 'boy') {
+      console.log('Character command detected in BaseScene');
+      const character = this.interactiveObjects[targetId];
+      if (character) {
+        if (verb === 'go' || verb === 'walk' || verb === 'move') {
+          console.log(`Moving to ${targetId} from BaseScene`);
+          this.movePlayerTo(character, () => {
+            this.showFeedback(true);
+          });
+          return;
+        } else if (verb === 'talk' || verb === 'ask') {
+          console.log(`Talking to ${targetId} from BaseScene`);
+          this.movePlayerTo(character, () => {
+            this.showFeedback(true);
+            if (this.onTalkTo) {
+              this.onTalkTo(targetId);
+            }
+          });
+          return;
+        }
+      } else {
+        console.log(`${targetId} object not found in interactiveObjects`);
+      }
+    }
+    
+    // Regular target handling for other objects
     const targetObject = this.interactiveObjects[targetId];
     
     if (!targetObject) {
@@ -67,6 +94,10 @@ class BaseScene extends Phaser.Scene {
       if (targetId === 'the tree' || targetId === 'a tree') {
         console.log('Handling renamed tree target');
         this.handleCommand({ verb, targetId: 'tree' });
+        return;
+      } else if (targetId === 'the girl' || targetId === 'the boy') {
+        console.log('Handling renamed character target');
+        this.handleCommand({ verb, targetId: targetId.replace('the ', '') });
         return;
       }
       

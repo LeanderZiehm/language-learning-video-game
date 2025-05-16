@@ -11,18 +11,27 @@ export function parseCommand(command) {
   const normalizedCommand = command.toLowerCase().trim();
   
   // Handle special case for "go to X" or "go X" command patterns
-  if (normalizedCommand.startsWith('go ')) {
-    // Extract the target (either after "to" or directly after "go")
+  if (normalizedCommand.startsWith('go ') || normalizedCommand.startsWith('move ')) {
+    // Extract the target (either after "to" or directly after verb)
     let targetId;
-    if (normalizedCommand.startsWith('go to ')) {
-      targetId = normalizedCommand.substring(6).trim();
+    let verb = normalizedCommand.startsWith('go ') ? 'go' : 'move';
+    
+    if (normalizedCommand.startsWith(`${verb} to `)) {
+      targetId = normalizedCommand.substring(verb.length + 4).trim();
     } else {
-      targetId = normalizedCommand.substring(3).trim();
+      targetId = normalizedCommand.substring(verb.length + 1).trim();
+    }
+    
+    // Check for girl/boy specifically (to handle "go to the girl", etc.)
+    if (targetId.includes('girl')) {
+      targetId = 'girl';
+    } else if (targetId.includes('boy')) {
+      targetId = 'boy';
     }
     
     if (targetId) {
       return {
-        verb: 'go',
+        verb: verb,
         targetId
       };
     }
@@ -40,7 +49,14 @@ export function parseCommand(command) {
   if (!isFirstWordVerb) return null;
   
   // Extract the target (everything after the verb)
-  const targetId = words.slice(1).join(' ');
+  let targetId = words.slice(1).join(' ');
+  
+  // Check for girl/boy specifically
+  if (targetId.includes('girl')) {
+    targetId = 'girl';
+  } else if (targetId.includes('boy')) {
+    targetId = 'boy';
+  }
   
   return {
     verb: firstWord,

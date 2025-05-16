@@ -48,15 +48,17 @@ function HUD({ profile }) {
     window.addEventListener('verbClicked', handleVerbClick);
     window.addEventListener('levelComplete', handleLevelComplete);
     
-    // Set initial suggestion
-    setSuggestions(['go to tree']);
+    // Set initial suggestions based on profile
+    const seeksBoy = profile?.seeks === 'Boyfriend';
+    const characterType = seeksBoy ? 'boy' : 'girl';
+    setSuggestions(['go to tree', `go to ${characterType}`, `talk to ${characterType}`]);
     
     return () => {
       window.removeEventListener('objectClicked', handleObjectClick);
       window.removeEventListener('verbClicked', handleVerbClick);
       window.removeEventListener('levelComplete', handleLevelComplete);
     };
-  }, []);
+  }, [profile]);
   
   // Listen for game events to update suggestions
   const handleObjectClick = (e) => {
@@ -132,12 +134,31 @@ function HUD({ profile }) {
     
     // Handle specific commands for better feedback
     const lowerCmd = cmd.toLowerCase().trim();
+    const seeksBoy = profile?.seeks === 'Boyfriend';
+    const characterType = seeksBoy ? 'boy' : 'girl';
+    
     if (lowerCmd === 'go to tree' || lowerCmd === 'go tree' || 
-        lowerCmd === 'go to the tree' || lowerCmd === 'go to a tree') {
+        lowerCmd === 'go to the tree' || lowerCmd === 'move to tree') {
       setFeedback({
         success: true,
         message: 'Great! Your character is moving to the tree.',
         translation: 'Go to the tree',
+        correction: ''
+      });
+    } else if (lowerCmd.includes('go') && lowerCmd.includes(characterType) ||
+               lowerCmd.includes('move') && lowerCmd.includes(characterType)) {
+      setFeedback({
+        success: true,
+        message: `Your character is moving to the ${characterType}.`,
+        translation: `Go to the ${characterType}`,
+        correction: ''
+      });
+    } else if (lowerCmd.includes('talk') && lowerCmd.includes(characterType) ||
+               lowerCmd.includes('ask') && lowerCmd.includes(characterType)) {
+      setFeedback({
+        success: true,
+        message: `You are talking to the ${characterType}.`,
+        translation: `Talk to the ${characterType}`,
         correction: ''
       });
     } else {
@@ -166,7 +187,7 @@ function HUD({ profile }) {
     const response = {
       success: Math.random() > 0.3, // 70% success rate for demo
       message: '',
-      translation: 'Go to the tree',
+      translation: cmd,
       correction: ''
     };
     
@@ -174,7 +195,20 @@ function HUD({ profile }) {
       response.message = 'Great job! That was correct.';
     } else {
       response.message = 'Not quite right.';
-      response.correction = 'Ve al árbol';
+      
+      // Set appropriate correction based on command language
+      const profile = window.game?.registry?.get('profile');
+      const targetLanguage = profile?.targetLanguage || 'Spanish';
+      
+      if (targetLanguage === 'Spanish') {
+        if (cmd.toLowerCase().includes('tree')) {
+          response.correction = 'Ve al árbol';
+        } else if (cmd.toLowerCase().includes('girl')) {
+          response.correction = 'Ve a la chica';
+        } else if (cmd.toLowerCase().includes('boy')) {
+          response.correction = 'Ve al chico';
+        }
+      }
     }
     
     setFeedback(response);
