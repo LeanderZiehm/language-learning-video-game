@@ -24,12 +24,14 @@ function App() {
   };
   
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
+    <div className="min-h-screen bg-gray-900 text-white overflow-hidden flex flex-col w-full">
       {!gameStarted ? (
         <IntroForm onSaveProfile={handleSaveProfile} savedProfile={profile} />
       ) : (
-        <div className="game-container">
-          <GameCanvas profile={profile} />
+        <div className="game-container flex flex-col h-screen w-full">
+          <div className="flex-grow overflow-hidden">
+            <GameCanvas profile={profile} />
+          </div>
           <HUD profile={profile} />
         </div>
       )}

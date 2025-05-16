@@ -56,6 +56,8 @@ export function initPhaser(container, profile) {
     width: 800,
     height: 600,
     pixelArt: true,
+    antialias: false,
+    roundPixels: true,
     physics: {
       default: 'arcade',
       arcade: {
@@ -66,9 +68,17 @@ export function initPhaser(container, profile) {
     scene: [Level1Scene, Level2Scene, Level3Scene, Level4Scene],
     scale: {
       mode: Phaser.Scale.FIT,
-      autoCenter: Phaser.Scale.CENTER_BOTH
+      autoCenter: Phaser.Scale.CENTER_BOTH,
+      parent: container,
+      width: 800,
+      height: 600
     },
-    backgroundColor: '#000000'
+    backgroundColor: '#85C17E',
+    render: {
+      pixelArt: true,
+      antialias: false,
+      roundPixels: true
+    }
   };
 
   // Create the game instance

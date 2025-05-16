@@ -9,52 +9,52 @@ import { loadPlaceholderAssets } from './placeholder';
 // Character sprite paths
 const characterSprites = {
   player: {
-    idle: '/assets/Modern tiles_Free/Characters_free/Adam_idle_16x16.png',
-    run: '/assets/Modern tiles_Free/Characters_free/Adam_run_16x16.png',
-    idleAnim: '/assets/Modern tiles_Free/Characters_free/Adam_idle_anim_16x16.png',
-    full: '/assets/Modern tiles_Free/Characters_free/Adam_16x16.png'
+    idle: 'assets/Modern tiles_Free/Characters_free/Adam_idle_16x16.png',
+    run: 'assets/Modern tiles_Free/Characters_free/Adam_run_16x16.png',
+    idleAnim: 'assets/Modern tiles_Free/Characters_free/Adam_idle_anim_16x16.png',
+    full: 'assets/Modern tiles_Free/Characters_free/Adam_16x16.png'
   },
   npc_girl: {
-    idle: '/assets/Modern tiles_Free/Characters_free/Amelia_idle_16x16.png',
-    run: '/assets/Modern tiles_Free/Characters_free/Amelia_run_16x16.png',
-    idleAnim: '/assets/Modern tiles_Free/Characters_free/Amelia_idle_anim_16x16.png',
-    full: '/assets/Modern tiles_Free/Characters_free/Amelia_16x16.png'
+    idle: 'assets/Modern tiles_Free/Characters_free/Amelia_idle_16x16.png',
+    run: 'assets/Modern tiles_Free/Characters_free/Amelia_run_16x16.png',
+    idleAnim: 'assets/Modern tiles_Free/Characters_free/Amelia_idle_anim_16x16.png',
+    full: 'assets/Modern tiles_Free/Characters_free/Amelia_16x16.png'
   },
   npc_boy: {
-    idle: '/assets/Modern tiles_Free/Characters_free/Alex_idle_16x16.png',
-    run: '/assets/Modern tiles_Free/Characters_free/Alex_run_16x16.png',
-    idleAnim: '/assets/Modern tiles_Free/Characters_free/Alex_idle_anim_16x16.png',
-    full: '/assets/Modern tiles_Free/Characters_free/Alex_16x16.png'
+    idle: 'assets/Modern tiles_Free/Characters_free/Alex_idle_16x16.png',
+    run: 'assets/Modern tiles_Free/Characters_free/Alex_run_16x16.png',
+    idleAnim: 'assets/Modern tiles_Free/Characters_free/Alex_idle_anim_16x16.png',
+    full: 'assets/Modern tiles_Free/Characters_free/Alex_16x16.png'
   }
 };
 
 // Environment sprite paths
 const environmentSprites = {
   // Tilesets
-  interiors: '/assets/Modern tiles_Free/Interiors_free/16x16/Interiors_free_16x16.png',
-  roomBuilder: '/assets/Modern tiles_Free/Interiors_free/16x16/Room_Builder_free_16x16.png',
+  interiors: 'assets/Modern tiles_Free/Interiors_free/16x16/Interiors_free_16x16.png',
+  roomBuilder: 'assets/Modern tiles_Free/Interiors_free/16x16/Room_Builder_free_16x16.png',
   
   // Harvest Summer assets
-  harvestTrees: '/assets/Harvest Sumer Free Ver. Pack/Harvest Sumer Free Ver. Pack/Vegetation/Trees 3.png',
-  harvestObjects: '/assets/Harvest Sumer Free Ver. Pack/Harvest Sumer Free Ver. Pack/Vegetation/Some Objects.png',
+  harvestTrees: 'assets/Harvest Sumer Free Ver. Pack/Harvest Sumer Free Ver. Pack/Vegetation/Trees 3.png',
+  harvestObjects: 'assets/Harvest Sumer Free Ver. Pack/Harvest Sumer Free Ver. Pack/Vegetation/Some Objects.png',
   
   // Individual objects extracted from tilesets
   tree: { 
     // This is now a direct image instead of a crop
-    source: '/assets/Harvest Sumer Free Ver. Pack/Harvest Sumer Free Ver. Pack/Vegetation/Trees 3.png',
+    source: 'assets/Harvest Sumer Free Ver. Pack/Harvest Sumer Free Ver. Pack/Vegetation/Trees 3.png',
     frame: 0  // Will use the first tree frame
   },
   bench: { 
     x: 208, y: 224, width: 48, height: 16, 
-    source: '/assets/Modern tiles_Free/Interiors_free/16x16/Interiors_free_16x16.png'
+    source: 'assets/Modern tiles_Free/Interiors_free/16x16/Interiors_free_16x16.png'
   },
   flowers: { 
     x: 448, y: 336, width: 16, height: 16, 
-    source: '/assets/Modern tiles_Free/Interiors_free/16x16/Interiors_free_16x16.png'
+    source: 'assets/Modern tiles_Free/Interiors_free/16x16/Interiors_free_16x16.png'
   },
   heart: { 
     x: 371, y: 129, width: 7, height: 7, 
-    source: '/assets/Modern tiles_Free/Interiors_free/16x16/Interiors_free_16x16.png'
+    source: 'assets/Modern tiles_Free/Interiors_free/16x16/Interiors_free_16x16.png'
   }
 };
 
@@ -73,6 +73,13 @@ const backgroundSprites = {
 export function loadCharacterSprites(scene) {
   // Flag to track if any assets failed to load
   let loadFailed = false;
+  
+  // Enable CORs for asset loading
+  scene.load.crossOrigin = 'anonymous';
+  
+  // Fix pixelArt rendering for all textures
+  scene.textures.smoothProperty = false;
+  scene.textures.setFilter(Phaser.Textures.FilterMode.NEAREST);
   
   // Set up error handler
   scene.load.on('loaderror', (fileObj) => {
@@ -114,6 +121,13 @@ export function loadEnvironmentAssets(scene) {
   // Flag to track if any assets failed to load
   let loadFailed = false;
   
+  // Enable CORs for asset loading
+  scene.load.crossOrigin = 'anonymous';
+  
+  // Fix pixelArt rendering for all textures
+  scene.textures.smoothProperty = false;
+  scene.textures.setFilter(Phaser.Textures.FilterMode.NEAREST);
+  
   // Set up error handler
   scene.load.on('loaderror', (fileObj) => {
     console.warn('Asset failed to load:', fileObj.src);
@@ -128,7 +142,7 @@ export function loadEnvironmentAssets(scene) {
     // Load Harvest Summer assets
     scene.load.spritesheet('harvestTrees', environmentSprites.harvestTrees, {
       frameWidth: 32,
-      frameHeight: 48
+      frameHeight: 48  // Adjusted from 64 to 48 to match the actual dimensions
     });
     
     scene.load.spritesheet('harvestObjects', environmentSprites.harvestObjects, {

@@ -120,14 +120,20 @@ function HUD({ profile }) {
   const handleCommandSubmit = (cmd = command) => {
     if (!cmd.trim()) return;
     
-    // Send command to game
-    window.dispatchEvent(new CustomEvent('commandSubmitted', { 
-      detail: { command: cmd } 
-    }));
+    // Log for debugging
+    console.log('Submitting command:', cmd);
+    
+    // Send command to game with a short delay to ensure the game is ready
+    setTimeout(() => {
+      window.dispatchEvent(new CustomEvent('commandSubmitted', { 
+        detail: { command: cmd } 
+      }));
+    }, 50);
     
     // Handle specific commands for better feedback
     const lowerCmd = cmd.toLowerCase().trim();
-    if (lowerCmd === 'go to tree' || lowerCmd === 'go tree') {
+    if (lowerCmd === 'go to tree' || lowerCmd === 'go tree' || 
+        lowerCmd === 'go to the tree' || lowerCmd === 'go to a tree') {
       setFeedback({
         success: true,
         message: 'Great! Your character is moving to the tree.',
@@ -184,22 +190,22 @@ function HUD({ profile }) {
   };
   
   return (
-    <div className="fixed bottom-0 left-0 right-0 p-4 bg-gray-800 border-t border-gray-700">
+    <div className="fixed bottom-0 left-0 right-0 p-2 bg-gray-800 bg-opacity-90 border-t border-gray-700">
       {feedback && (
-        <div className={`feedback-panel mb-3 ${feedback.success ? 'bg-green-100' : 'bg-red-100'}`}>
-          <p className={feedback.success ? 'text-green-800' : 'text-red-800'}>
+        <div className={`feedback-panel mb-2 p-2 rounded ${feedback.success ? 'bg-green-100' : 'bg-red-100'}`}>
+          <p className={`${feedback.success ? 'text-green-800' : 'text-red-800'} text-sm`}>
             {feedback.message}
           </p>
-          <p className="text-gray-700 mt-1">Translation: {feedback.translation}</p>
+          <p className="text-gray-700 text-xs mt-1">Translation: {feedback.translation}</p>
           {feedback.correction && (
-            <p className="text-blue-700 mt-1">Correction: {feedback.correction}</p>
+            <p className="text-blue-700 text-xs mt-1">Correction: {feedback.correction}</p>
           )}
         </div>
       )}
       
       {/* Suggestions */}
       {suggestions.length > 0 && !feedback && (
-        <div className="bg-gray-700 p-2 mb-2 rounded text-white text-sm">
+        <div className="bg-gray-700 p-1 mb-1 rounded text-white text-xs">
           <p>Try typing: {suggestions.map(s => <span key={s} className="bg-gray-600 px-2 py-1 rounded mr-2 cursor-pointer" onClick={() => setCommand(s)}>{s}</span>)}</p>
         </div>
       )}
@@ -212,20 +218,20 @@ function HUD({ profile }) {
           onChange={(e) => setCommand(e.target.value)}
           onKeyPress={handleKeyPress}
           placeholder="Type a command like 'go to tree'..."
-          className="command-input flex-grow"
+          className="command-input flex-grow p-1 text-sm"
         />
         <button 
           onClick={toggleMic}
-          className={`btn-mic ml-2 ${isMicActive ? 'bg-red-700 animate-pulse' : 'bg-red-500'}`}
+          className={`btn-mic ml-2 p-1 ${isMicActive ? 'bg-red-700 animate-pulse' : 'bg-red-500'}`}
           aria-label="Toggle microphone"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
           </svg>
         </button>
         <button
           onClick={() => handleCommandSubmit()}
-          className="btn ml-2"
+          className="btn ml-2 p-1 px-2 text-sm"
         >
           Submit
         </button>
