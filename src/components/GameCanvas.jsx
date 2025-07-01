@@ -22,16 +22,17 @@ function GameCanvas({ profile }) {
   }, [profile]);
 
   return (
-    <div className="game-canvas-container w-full flex-grow flex items-center justify-center">
+    <div className="game-canvas-container w-full h-full flex-grow flex items-center justify-center">
       <div 
         ref={gameContainerRef} 
-        className="game-canvas relative" 
-        style={{ 
-          width: '800px',
-          height: '600px',
-          maxWidth: '100%',
-          maxHeight: 'calc(100vh - 120px)',
-          margin: '0 auto'
+        className="game-canvas relative w-full h-full" 
+        style={{
+          width: '100%',
+          height: '100%',
+          maxWidth: '100vw',
+          maxHeight: '100vh',
+          margin: 0,
+          padding: 0,
         }}
       >
         {/* Phaser will render the game canvas here */}
@@ -59,4 +60,4 @@ function GameCanvas({ profile }) {
   );
 }
 
-export default GameCanvas; 
+export default GameCanvas;

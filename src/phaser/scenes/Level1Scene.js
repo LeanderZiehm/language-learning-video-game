@@ -3,6 +3,7 @@ import BaseScene from './BaseScene';
 class Level1Scene extends BaseScene {
   constructor() {
     super('Level1Scene');
+    
     this.conversationSteps = 0;
     this.requiredSteps = 3;
     this.isInDialogue = false;
@@ -299,7 +300,7 @@ class Level1Scene extends BaseScene {
     this.portrait = this.add.image(0, -50, 'sprite_close_up');
     // Scale the portrait to fit nicely
     if (this.textures.exists('sprite_close_up')) {
-      this.portrait.setScale(0.5);
+      this.portrait.setScale(0.8);
     } else {
       // Create a placeholder portrait if image doesn't exist
       this.portrait = this.add.rectangle(0, -50, 300, 300, 0xff44aa);
@@ -847,25 +848,29 @@ You're from ${targetLanguage === 'Spanish' ? 'Madrid, Spain' : 'a country where 
   
   createGameText() {
     // Title with nicer styling
-    this.add.text(400, 50, 'Level 1: First Contact', {
-      fontSize: '28px',
-      fontFamily: 'Georgia, serif',
+    // this.add.text(400, 50, 'Level 1: First Contact', {
+    //   fontSize: '28px',
+    //   fontFamily: 'Georgia, serif',
+    //   color: '#ffffff',
+    //   stroke: '#000000',
+    //   strokeThickness: 4,
+    //   shadow: { color: '#000000', blur: 10, stroke: true, fill: true }
+    // }).setOrigin(0.5);
+    
+    // Instruction text with better visibility and higher quality font
+    this.instructionText = this.add.text(400, 530, 'Try typing "go to tree" in the command box below!', {
+      fontSize: '22px',
+      fontFamily: 'Segoe UI, Arial, Helvetica, sans-serif',
       color: '#ffffff',
+      backgroundColor: '#000000cc',
+      padding: { x: 16, y: 10 },
+      fixedWidth: 700,
+      align: 'center',
       stroke: '#000000',
       strokeThickness: 4,
-      shadow: { color: '#000000', blur: 10, stroke: true, fill: true }
-    }).setOrigin(0.5);
-    
-    // Instruction text with better visibility
-    this.instructionText = this.add.text(400, 530, 'Try typing "go to tree" in the command box below!', {
-      fontSize: '18px',
-      fontFamily: 'Arial, sans-serif',
-      color: '#ffffff',
-      backgroundColor: '#00000080',
-      padding: { x: 10, y: 5 },
-      fixedWidth: 600,
-      align: 'center'
-    }).setOrigin(0.5);
+      shadow: { color: '#000000', blur: 8, stroke: true, fill: true },
+       resolution: 2 
+    }).setOrigin(0.5).setResolution(2);
   }
   
   movePlayerTo(targetSprite, onComplete = () => {}) {
@@ -1118,4 +1123,4 @@ showFeedback(success, type = 'heart') {
   }
 }
 
-export default Level1Scene; 
+export default Level1Scene;

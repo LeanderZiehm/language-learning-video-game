@@ -87,7 +87,8 @@ export function initPhaser(container, profile) {
       autoCenter: Phaser.Scale.CENTER_BOTH,
       parent: container,
       width: 800,
-      height: 600
+      height: 600,
+      zoom: window.devicePixelRatio
     },
     backgroundColor: '#85C17E',
     render: {

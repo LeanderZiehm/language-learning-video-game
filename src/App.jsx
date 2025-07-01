@@ -30,8 +30,8 @@ function App() {
         <IntroForm onSaveProfile={handleSaveProfile} savedProfile={profile} />
       ) : (
         <div className="game-container flex flex-col h-screen w-full">
-          <div className="flex-grow overflow-hidden">
-            <GameCanvas profile={profile} />
+          <div className="flex-grow flex w-full h-full overflow-hidden">
+            <GameCanvas profile={profile} className="w-full h-full" />
           </div>
           <HUD profile={profile} />
         </div>
@@ -178,4 +178,4 @@ function IntroForm({ onSaveProfile, savedProfile }) {
   );
 }
 
-export default App; 
+export default App;
