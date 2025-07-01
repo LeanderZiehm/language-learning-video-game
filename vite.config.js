@@ -5,7 +5,7 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   server: {
-    open: true
+    open: false
   },
   // Properly handle publicPath for assets
   base: './',
