@@ -7,11 +7,11 @@ function App() {
   const [gameStarted, setGameStarted] = useState(false);
   
   useEffect(() => {
-    const savedProfile = localStorage.getItem('profile');
-    if (savedProfile) {
-      setProfile(JSON.parse(savedProfile));
-      handleStartGame();
-    }
+    // const savedProfile = localStorage.getItem('profile');
+    // if (savedProfile) {
+    //   setProfile(JSON.parse(savedProfile));
+    //   handleStartGame();
+    // }
   }, []);
 
   const handleStartGame = () => {
@@ -56,10 +56,10 @@ function IntroForm({ onSaveProfile, savedProfile }) {
     e.preventDefault();
     
     const newErrors = {};
-    if (!targetLanguage) newErrors.targetLanguage = 'Please select a target language';
-    if (!nativeLanguage) newErrors.nativeLanguage = 'Please select your native language';
-    if (!email) newErrors.email = 'Please enter your email';
-    if (email && !/\S+@\S+\.\S+/.test(email)) newErrors.email = 'Please enter a valid email';
+    // if (!targetLanguage) newErrors.targetLanguage = 'Please select a target language';
+    // if (!nativeLanguage) newErrors.nativeLanguage = 'Please select your native language';
+    // if (!email) newErrors.email = 'Please enter your email';
+    // if (email && !/\S+@\S+\.\S+/.test(email)) newErrors.email = 'Please enter a valid email';
     
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);

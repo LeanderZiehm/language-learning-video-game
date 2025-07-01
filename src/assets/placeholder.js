@@ -89,6 +89,7 @@ function createTreeImageData(color = '#2ecc71', size = 32) {
 
 // Create a heart image
 function createHeartImageData(color = '#FF0000', size = 32) {
+  console.log('Creating heart image data');
   const canvas = document.createElement('canvas');
   canvas.width = size;
   canvas.height = size;

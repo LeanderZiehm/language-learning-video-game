@@ -69,7 +69,7 @@ class Level1Scene extends BaseScene {
     this.load.image('trees', 'assets/Harvest Sumer Free Ver. Pack/Harvest Sumer Free Ver. Pack/Vegetation/Trees 3.png');
     
     // Load close-up sprite
-    this.load.image('sprite_close_up', 'src/assets/sprite_close_up.webp');
+    this.load.image('sprite_close_up', 'src/assets/girl_closeup.png');
   }
 
   create() {
@@ -322,7 +322,7 @@ class Level1Scene extends BaseScene {
     this.dialogueContainer.add(this.dialogueText);
     
     // Add click to continue indicator
-    this.continueIndicator = this.add.text(300, 180, '[ Click to continue ]', {
+    this.continueIndicator = this.add.text(300, 180, '', {
       fontFamily: 'Arial',
       fontSize: '16px',
       color: '#ffffff'
@@ -777,7 +777,8 @@ You're from ${targetLanguage === 'Spanish' ? 'Madrid, Spain' : 'a country where 
             // Move player to the tree
             this.movePlayerTo(tree, () => {
               // Provide success feedback
-              this.showFeedback(true);
+              this.showFeedback(true,'star');
+                console.log("calling this")
               
               // Update instruction text
               if (!this.hasVisitedTree) {
@@ -806,10 +807,13 @@ You're from ${targetLanguage === 'Spanish' ? 'Madrid, Spain' : 'a country where 
             // Move player to the NPC
             this.movePlayerTo(npc, () => {
               // Provide success feedback
+              console.log("calling this evntho it shouldn")
               this.showFeedback(true);
               
               // If it's a "talk to" command, show dialogue
               if (lowerCmd.includes('talk')) {
+                //hide the buttons on top
+                document.getElementById('floating-panel').style.display = 'none';
                 this.startDialogueWithNPC(npcName);
               }
             });
@@ -913,48 +917,85 @@ You're from ${targetLanguage === 'Spanish' ? 'Madrid, Spain' : 'a country where 
     });
   }
   
-  showFeedback(success) {
-    if (success) {
-      // Create heart animation
-      const heart = this.add.image(this.player.x, this.player.y - 20, 'heart');
-      if (!heart.texture.key) {
-        // Create heart shape if texture doesn't exist
-        const heartShape = this.add.star(this.player.x, this.player.y - 20, 5, 10, 15, 0xff0000);
-        heartShape.setDepth(1000);
-        
-        // Animate it
-        this.tweens.add({
-          targets: heartShape,
-          y: heartShape.y - 50,
-          alpha: 0,
-          scale: 2,
-          duration: 1000,
-          ease: 'Cubic.out',
-          onComplete: () => heartShape.destroy()
-        });
-      } else {
-        heart.setScale(0);
-        heart.setDepth(1000);
-        
-        // Animate it
-        this.tweens.add({
-          targets: heart,
-          scale: 2,
-          y: heart.y - 50,
-          duration: 1000,
-          ease: 'Cubic.out',
-          onComplete: () => {
-            this.tweens.add({
-              targets: heart,
-              alpha: 0,
-              duration: 300,
-              onComplete: () => heart.destroy()
-            });
-          }
-        });
-      }
+showFeedback(success, type = 'heart') {
+
+  console.log('Showing feedback:', success, type);
+  if (!success) return;
+
+  let shape;
+
+  if (type === 'star') {
+    // Yellow star using polygon points
+    shape = this.add.graphics();
+    shape.fillStyle(0xffff00, 1); // yellow
+
+    shape.beginPath();
+    const spikes = 5;
+    const outerRadius = 12;
+    const innerRadius = 5;
+    const centerX = 0;
+    const centerY = 0;
+
+    let rot = Math.PI / 2 * 3;
+    let step = Math.PI / spikes;
+
+    shape.moveTo(centerX, centerY - outerRadius);
+
+    for (let i = 0; i < spikes; i++) {
+      let x = centerX + Math.cos(rot) * outerRadius;
+      let y = centerY + Math.sin(rot) * outerRadius;
+      shape.lineTo(x, y);
+      rot += step;
+
+      x = centerX + Math.cos(rot) * innerRadius;
+      y = centerY + Math.sin(rot) * innerRadius;
+      shape.lineTo(x, y);
+      rot += step;
     }
+
+    shape.lineTo(centerX, centerY - outerRadius);
+    shape.closePath();
+    shape.fillPath();
+
+  } else {
+    // Red heart using circles + triangle
+    shape = this.add.graphics();
+    shape.fillStyle(0xff0000, 1); // red
+
+    const size = 10;
+
+    // Left circle
+    shape.fillCircle(-size / 2, 0, size);
+
+    // Right circle
+    shape.fillCircle(size / 2, 0, size);
+
+    // Bottom triangle
+    shape.beginPath();
+    shape.moveTo(-size * 1.5, 0);
+    shape.lineTo(0, size * 2);
+    shape.lineTo(size * 1.5, 0);
+    shape.closePath();
+    shape.fillPath();
   }
+
+  // Create container so we can animate whole thing
+  const feedback = this.add.container(this.player.x, this.player.y - 20, [shape]);
+  feedback.setDepth(1000);
+
+  // Animate it
+  this.tweens.add({
+    targets: feedback,
+    y: feedback.y - 50,
+    alpha: 0,
+    scale: 2,
+    duration: 1000,
+    ease: 'Cubic.out',
+    onComplete: () => feedback.destroy()
+  });
+}
+
+
   
   startDialogueWithNPC(npcName) {
     const profile = this.game.registry.get('profile') || {};

@@ -16,8 +16,8 @@ function HUD({ profile }) {
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const isAlreadySubscribed = localStorage.getItem('subscribed') === 'true';
-      setIsSubscribed(isAlreadySubscribed);
+      // const isAlreadySubscribed = localStorage.getItem('subscribed') === 'true';
+      // setIsSubscribed(isAlreadySubscribed);
       
       // Set up speech recognition if available
       if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {

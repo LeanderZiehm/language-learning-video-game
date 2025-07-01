@@ -21,13 +21,13 @@ class Level4Scene extends BaseScene {
 
   create() {
     // Check if user is subscribed
-    this.isSubscribed = localStorage.getItem('subscribed') === 'true';
+    // this.isSubscribed = localStorage.getItem('subscribed') === 'true';
     
-    if (!this.isSubscribed) {
-      // Redirect back to Level 3 if not subscribed
-      this.scene.start('Level3Scene');
-      return;
-    }
+    // if (!this.isSubscribed) {
+    //   // Redirect back to Level 3 if not subscribed
+    //   this.scene.start('Level3Scene');
+    //   return;
+    // }
     
     // Get player preferences from registry
     const profile = this.game.registry.get('profile') || {};

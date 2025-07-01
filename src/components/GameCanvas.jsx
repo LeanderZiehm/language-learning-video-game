@@ -37,7 +37,7 @@ function GameCanvas({ profile }) {
         {/* Phaser will render the game canvas here */}
         
         {/* Floating verb panel */}
-        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-gray-800 bg-opacity-90 rounded-lg p-2 shadow-lg z-10">
+        <div id='floating-panel' className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-gray-800 bg-opacity-90 rounded-lg p-2 shadow-lg z-10">
           <div className="flex flex-wrap justify-center gap-2">
             {["go", "walk", "talk", "ask", "give", "take"].map(verb => (
               <button

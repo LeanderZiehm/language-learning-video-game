@@ -47,7 +47,7 @@ class BaseScene extends Phaser.Scene {
       if (tree && (verb === 'go' || verb === 'walk' || verb === 'move')) {
         console.log('Moving to tree from BaseScene');
         this.movePlayerTo(tree, () => {
-          this.showFeedback(true);
+          this.showFeedback(true,'star');
           // Special first-time instruction
           if (this.scene.key === 'Level1Scene' && !this.hasVisitedTree) {
             this.hasVisitedTree = true;
@@ -173,11 +173,11 @@ class BaseScene extends Phaser.Scene {
         }));
         
         // Check if user is already subscribed
-        if (localStorage.getItem('subscribed') === 'true') {
-          nextScene = 'Level4Scene';
-        } else {
-          return; // Wait for subscription
-        }
+        // if (localStorage.getItem('subscribed') === 'true') {
+        //   nextScene = 'Level4Scene';
+        // } else {
+        //   return; // Wait for subscription
+        // }
         break;
       default:
         return;
