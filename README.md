@@ -1,10 +1,10 @@
-# LoveLingo Quest
+# LoveLingo 
 
 A browser-based 2D pixel-art language learning game that helps users practice language skills through a romance-themed adventure.
 
 ## About the Game
 
-LoveLingo Quest is a fun and engaging way to practice your target language. Progress through four romance-themed levels:
+LoveLingo is a fun and engaging way to practice your target language. Progress through four romance-themed levels:
 
 1. **First Contact**: Talk to a girl/boy in the park
 2. **Small Talk**: Have a conversation and ask for a date
