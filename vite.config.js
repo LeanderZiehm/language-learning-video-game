@@ -6,7 +6,7 @@ export default defineConfig({
   plugins: [react()],
   server: {
     open: false,
-     allowedHosts: 'all'
+    allowedHosts: ['lovelingo-game.leanderziehm.com']
   },
   // Properly handle publicPath for assets
   base: './',
