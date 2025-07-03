@@ -259,7 +259,7 @@ function HUD({ profile }) {
   };
   
   const isVerb = (word) => {
-    const verbs = ["go", "walk", "move", "pick", "talk", "ask", "give", "take"];
+    const verbs = ["go", "talk","tree","girl"];
     return verbs.includes(word.toLowerCase());
   };
   
