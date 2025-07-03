@@ -858,7 +858,7 @@ You're from ${targetLanguage === 'Spanish' ? 'Madrid, Spain' : 'a country where 
     // }).setOrigin(0.5);
     
     // Instruction text with better visibility and higher quality font
-    this.instructionText = this.add.text(400, 530, 'Try speaking "go to tree" in the command box below!', {
+    this.instructionText = this.add.text(400, 530, 'Try speaking "go to tree"', {
       fontSize: '22px',
       fontFamily: 'Segoe UI, Arial, Helvetica, sans-serif',
       color: '#ffffff',

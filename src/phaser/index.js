@@ -6,7 +6,7 @@ import Level4Scene from './scenes/Level4Scene';
 
 // Command parser utility function
 export function parseCommand(command) {
-  const verbs = ["go", "talk","tree","girl"];
+  const verbs = ["go", "talk","to","tree","girl"];
   
   const normalizedCommand = command.toLowerCase().trim();
   
