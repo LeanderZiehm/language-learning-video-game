@@ -52,7 +52,7 @@ class BaseScene extends Phaser.Scene {
           if (this.scene.key === 'Level1Scene' && !this.hasVisitedTree) {
             this.hasVisitedTree = true;
             if (this.instructionText) {
-              this.instructionText.setText("Great! Now try to interact with other objects or talk to the character.");
+              this.instructionText.setText(`Great! Now say "go to the girl" and try to talk to her.`  );
             }
           }
         });
@@ -122,7 +122,7 @@ class BaseScene extends Phaser.Scene {
           if (!this.hasVisitedTree) {
             this.hasVisitedTree = true;
             if (this.instructionText) {
-              this.instructionText.setText("Great! Now try to interact with other objects or talk to the character.");
+              this.instructionText.setText(`Great! Now say "go to the girl" and try to talk to her.` );
             }
           }
         }
