@@ -19,9 +19,9 @@ function App() {
   };
   
   const handleSaveProfile = (profileData) => {
-    localStorage.setItem('profile', JSON.stringify(profileData));
-    setProfile(profileData);
-    handleStartGame();
+    // localStorage.setItem('profile', JSON.stringify(profileData));
+    // setProfile(profileData);
+    // handleStartGame();
   };
   
   return (
