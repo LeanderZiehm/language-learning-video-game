@@ -1004,7 +1004,7 @@ showFeedback(success, type = 'heart') {
   
   startDialogueWithNPC(npcName) {
     const profile = this.game.registry.get('profile') || {};
-    const targetLanguage = profile.targetLanguage || 'Spanish';
+    const targetLanguage = profile.targetLanguage || 'German';
     
     // Define dialogue options based on conversation step
     let dialogue;
